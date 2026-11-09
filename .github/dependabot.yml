@@ -9,6 +9,12 @@ updates:
         dependency-type: development
       runtime:
         dependency-type: production
+    ignore:
+      # typescript-eslint pins a peer range of typescript <6.1.0, so newer
+      # TypeScript minors/majors cannot resolve and fail the whole group.
+      # Remove once typescript-eslint supports the newer TypeScript line.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-minor', 'version-update:semver-major']
   - package-ecosystem: github-actions
     directory: /
     schedule:
