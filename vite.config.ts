@@ -1,8 +1,10 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+// Dev and preview servers bind to localhost by default.
+// Use `npm run dev -- --host` to expose them on your network deliberately.
 export default defineConfig({
   plugins: [react()],
-  server: { host: '0.0.0.0', port: 5173 },
-  preview: { host: '0.0.0.0', port: 4173 },
+  server: { port: 5173 },
+  preview: { port: 4173 },
 });

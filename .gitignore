@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+*.tsbuildinfo
+
+# Test and coverage output
+coverage/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Environment files (never commit secrets)
+.env
+.env.*
+!.env.example
+
+# Exported business-case drafts may contain sensitive financial data
+business-case-studio*.json
+
+# Editor and OS files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
