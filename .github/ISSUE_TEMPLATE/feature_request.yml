@@ -1,0 +1,17 @@
+name: Feature request
+description: Propose a new calculator, metric, or workflow improvement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Decision or problem this would support
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: For new calculations, include the formula and the source of any benchmark values.
+    validations:
+      required: true

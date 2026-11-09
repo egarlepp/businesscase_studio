@@ -1,0 +1,22 @@
+name: Bug report
+description: Something is broken or a calculation looks wrong
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Include the page/section and the inputs you changed. Do not paste confidential financial data.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+      description: For calculation issues, show the expected value and how you derived it.
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
