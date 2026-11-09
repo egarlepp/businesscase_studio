@@ -70,6 +70,6 @@ export function createFormatters(currencyCode: string): Formatters {
     moneyCompact: (v) => compact.format(v),
     percent: (v) => percent.format(v),
     number: (v) => number.format(v),
-    months: (v) => (v === null ? 'Not reached' : `${v.toFixed(1)} mo.`),
+    months: (v) => (v === null ? 'Not reached' : `${v.toFixed(1)} months`),
   };
 }
