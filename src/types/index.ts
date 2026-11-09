@@ -89,6 +89,7 @@ export interface Inputs {
   actualAnnualBenefits: number;
   actualAnnualRunCost: number;
   actualInitialCost: number;
+  monthsSinceLaunch: number;
 }
 
 export interface AnnualBreakdown {
@@ -149,6 +150,8 @@ export interface Results {
   timeToMarketBenefit: number;
   technicalHealthScore: number;
   technicalRisk: 'Low' | 'Moderate' | 'High' | 'Critical';
+  /** Heuristic reserve rate derived from the technical-health score (not applied automatically). */
+  suggestedTechnicalDebtReserveRate: number;
   confidenceScore: number;
   /** Recurring benefits for year one. */
   benefitBreakdown: BenefitBreakdown;
@@ -156,6 +159,25 @@ export interface Results {
   costBreakdown: CostBreakdown;
   annualBreakdown: AnnualBreakdown[];
   warnings: string[];
+}
+
+export interface ActualsResults {
+  adoptionVariance: number;
+  annualBenefitsVariance: number;
+  annualRunCostVariance: number;
+  initialCostVariance: number;
+  actualAnnualNet: number;
+  annualNetVariance: number;
+  /** Actual ÷ modeled recurring annual benefits; null when nothing is modeled. */
+  benefitRealization: number | null;
+  /** Actual net value accumulated since launch. */
+  netToDate: number;
+  /** Net to date ÷ actual initial cost; null when there is no initial cost. */
+  paybackProgress: number | null;
+  /** Months to recover actual initial cost at the actual run rate; null if never. */
+  actualPaybackMonths: number | null;
+  /** Horizon ROI using actual annual figures held flat. */
+  actualRoi: number;
 }
 
 export interface AssumptionItem {

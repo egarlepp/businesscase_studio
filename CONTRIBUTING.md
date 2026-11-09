@@ -23,6 +23,15 @@ npm run check
 - **Calculation changes need tests.** Every formula lives in `src/calculations/engine.ts`. If you
   add or change one, add a test in `src/calculations/engine.test.ts` that pins the expected value,
   and update `docs/METHODOLOGY.md`.
+- **Keep the formula registry in sync.** `src/calculations/formulas.ts` powers the in-app
+  explanations. `formulas.test.ts` fails if a listed input does not affect a result, or if a leaf
+  formula depends on an input it does not list. Update the registry alongside the engine.
+- **New inputs need a UI location.** Add every new `Inputs` field to `src/ui/fields.ts` and to
+  `defaultInputs`. Saved drafts fill missing fields from the defaults, so additive changes need no
+  migration. Renaming or removing a field requires bumping `DRAFT_VERSION` in
+  `src/persistence/draft.ts` and adding a migration.
+- **UI changes need UI tests.** Add or update tests in `src/App.test.tsx`, and keep controls
+  keyboard-accessible with an accessible name.
 - **Keep the engine pure.** `calculateBusinessCase` must not depend on React, the DOM, or global
   state.
 - **Be conservative with defaults.** Values in `src/data/defaults.ts` are what new users see first.
