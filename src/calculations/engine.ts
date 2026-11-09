@@ -2,6 +2,24 @@ import type { Inputs, Results } from '../types';
 const clamp = (v: number, min = 0, max = 1) => Math.min(Math.max(v, min), max);
 const positive = (v: number) => Math.max(v, 0);
 
+/**
+ * Months until cumulative net value covers the initial investment, using year-one values.
+ * A one-time monthly saving (e.g. deferred hiring) applies only during its first `oneTimeMonths`.
+ * Returns null when payback is never reached.
+ */
+export function calculatePaybackMonths(
+  initialCost: number,
+  recurringMonthlyNet: number,
+  oneTimeMonthly: number,
+  oneTimeMonths: number,
+): number | null {
+  const earlyMonthlyNet = recurringMonthlyNet + oneTimeMonthly;
+  if (oneTimeMonths > 0 && earlyMonthlyNet > 0 && initialCost <= earlyMonthlyNet * oneTimeMonths)
+    return initialCost / earlyMonthlyNet;
+  if (recurringMonthlyNet <= 0) return null;
+  return (initialCost - oneTimeMonthly * oneTimeMonths) / recurringMonthlyNet;
+}
+
 export function calculateBusinessCase(raw: Inputs): Results {
   const adoption = clamp(raw.adoptionRate),
     realization = clamp(raw.realizationRate),
@@ -23,8 +41,11 @@ export function calculateBusinessCase(raw: Inputs): Results {
   const capacity =
     raw.capacityHoursRecoveredYear * raw.loadedHourlyRate * capRealization * adoption;
   const contractorAvoidance = raw.contractorHoursAvoided * raw.contractorHourlyRate * adoption;
-  const hiringDeferral =
-    raw.deferredHires * raw.monthsDeferred * raw.monthlyLoadedFteCost * adoption;
+  // Deferred hiring is a one-time saving: the loaded cost of each deferred FTE is avoided only
+  // for the months the hire is postponed, starting at go-live. It is not a recurring benefit.
+  const hiringDeferralMonthly =
+    positive(raw.deferredHires) * positive(raw.monthlyLoadedFteCost) * adoption;
+  const deferralMonths = positive(raw.monthsDeferred);
   const winRate =
     raw.influencedPipeline *
     positive(raw.incrementalWinRate) *
@@ -45,7 +66,6 @@ export function calculateBusinessCase(raw: Inputs): Results {
     reconciliation +
     capacity +
     contractorAvoidance +
-    hiringDeferral +
     winRate +
     opportunityCoverage +
     riskReduction;
@@ -78,13 +98,17 @@ export function calculateBusinessCase(raw: Inputs): Results {
   const technicalDebt = annualBaseRunCost * positive(raw.technicalDebtReserveRate);
   const annualRunCost = annualBaseRunCost + technicalDebt;
 
+  const hiringDeferral = hiringDeferralMonthly * Math.min(deferralMonths, years * 12);
+
   let cumulativeNet = -initialCost,
     npv = -initialCost,
     totalBenefits = 0,
     recurringCosts = 0;
   const annualBreakdown = Array.from({ length: years }, (_, i) => {
     const year = i + 1;
-    const benefits = annualBenefits * Math.pow(1 + raw.benefitsGrowthRate, i);
+    const deferralMonthsThisYear = clamp(deferralMonths - i * 12, 0, 12);
+    const oneTimeBenefits = hiringDeferralMonthly * deferralMonthsThisYear;
+    const benefits = annualBenefits * Math.pow(1 + raw.benefitsGrowthRate, i) + oneTimeBenefits;
     const costs = annualRunCost * Math.pow(1 + raw.costGrowthRate, i);
     totalBenefits += benefits;
     recurringCosts += costs;
@@ -92,14 +116,19 @@ export function calculateBusinessCase(raw: Inputs): Results {
     cumulativeNet += net;
     const discountedNet = net / Math.pow(1 + positive(raw.discountRate), year);
     npv += discountedNet;
-    return { year, benefits, costs, net, discountedNet, cumulativeNet };
+    return { year, benefits, oneTimeBenefits, costs, net, discountedNet, cumulativeNet };
   });
   const totalCosts = initialCost + recurringCosts,
     netBenefit = totalBenefits - totalCosts;
   const roi = totalCosts ? netBenefit / totalCosts : 0,
     benefitCostRatio = totalCosts ? totalBenefits / totalCosts : 0;
-  const monthlyNet = (annualBenefits - annualRunCost) / 12,
-    paybackMonths = monthlyNet > 0 ? initialCost / monthlyNet : null;
+  const monthlyNet = (annualBenefits - annualRunCost) / 12;
+  const paybackMonths = calculatePaybackMonths(
+    initialCost,
+    monthlyNet,
+    hiringDeferralMonthly,
+    deferralMonths,
+  );
   const traditionalBuildCost = raw.traditionalBuildHours * raw.traditionalBuildRate;
   const aiAssistedBuildCost = labor + aiCash;
   const aiDevelopmentSavings = traditionalBuildCost - aiAssistedBuildCost;
@@ -144,7 +173,9 @@ export function calculateBusinessCase(raw: Inputs): Results {
   if (aiCash > 0 && laborHours === 0)
     warnings.push('AI spend is included without human oversight effort.');
   if (annualBenefits <= annualRunCost)
-    warnings.push('Annual run costs exceed or equal annual benefits; payback is not achieved.');
+    warnings.push(
+      'Recurring annual run costs exceed or equal recurring annual benefits; net value is not sustained.',
+    );
   if (raw.deferredHires > 0 && raw.capacityHoursRecoveredYear > 0)
     warnings.push('Check that recovered capacity and deferred hiring are not double-counted.');
   if (raw.incrementalWinRate > 0.03)
@@ -179,11 +210,11 @@ export function calculateBusinessCase(raw: Inputs): Results {
       reconciliation,
       capacity,
       contractorAvoidance,
-      hiringDeferral,
       winRate,
       opportunityCoverage,
       riskReduction,
     },
+    oneTimeBenefitBreakdown: { hiringDeferral },
     costBreakdown: {
       labor,
       aiCash,

@@ -93,7 +93,10 @@ export interface Inputs {
 
 export interface AnnualBreakdown {
   year: number;
+  /** Total benefits recognized in the year, including one-time benefits. */
   benefits: number;
+  /** Portion of `benefits` that is one-time (e.g. deferred hiring), not subject to growth. */
+  oneTimeBenefits: number;
   costs: number;
   net: number;
   discountedNet: number;
@@ -106,10 +109,14 @@ export interface BenefitBreakdown {
   reconciliation: number;
   capacity: number;
   contractorAvoidance: number;
-  hiringDeferral: number;
   winRate: number;
   opportunityCoverage: number;
   riskReduction: number;
+}
+
+/** One-time benefits, totaled over the evaluation horizon. */
+export interface OneTimeBenefitBreakdown {
+  hiringDeferral: number;
 }
 
 export interface CostBreakdown {
@@ -124,6 +131,7 @@ export interface CostBreakdown {
 }
 
 export interface Results {
+  /** Recurring benefits for year one; excludes one-time benefits such as deferred hiring. */
   annualBenefits: number;
   initialCost: number;
   annualRunCost: number;
@@ -142,7 +150,9 @@ export interface Results {
   technicalHealthScore: number;
   technicalRisk: 'Low' | 'Moderate' | 'High' | 'Critical';
   confidenceScore: number;
+  /** Recurring benefits for year one. */
   benefitBreakdown: BenefitBreakdown;
+  oneTimeBenefitBreakdown: OneTimeBenefitBreakdown;
   costBreakdown: CostBreakdown;
   annualBreakdown: AnnualBreakdown[];
   warnings: string[];
