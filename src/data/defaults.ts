@@ -88,6 +88,7 @@ export const defaultInputs: Inputs = {
   actualAnnualBenefits: 110000,
   actualAnnualRunCost: 76000,
   actualInitialCost: 92000,
+  monthsSinceLaunch: 6,
 };
 
 export const defaultAssumptions: AssumptionItem[] = [

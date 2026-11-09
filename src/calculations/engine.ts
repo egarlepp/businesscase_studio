@@ -1,23 +1,61 @@
-import type { Inputs, Results } from '../types';
+import type { ActualsResults, Inputs, Results } from '../types';
 const clamp = (v: number, min = 0, max = 1) => Math.min(Math.max(v, min), max);
 const positive = (v: number) => Math.max(v, 0);
+const formatPercent = (v: number) => `${Math.round(v * 1000) / 10}%`;
+
+/** Payback search stops after this many months (50 years) and reports "not reached". */
+export const MAX_PAYBACK_MONTHS = 600;
+
+/** Technical-debt reserve suggested at perfect (100) and worst (0) technical health. */
+export const SUGGESTED_RESERVE_AT_BEST_HEALTH = 0.05;
+export const SUGGESTED_RESERVE_AT_WORST_HEALTH = 0.3;
+/** Tolerance before an entered reserve below the suggestion raises a warning. */
+export const RESERVE_WARNING_TOLERANCE = 0.025;
+
+export interface PaybackParams {
+  initialCost: number;
+  /** Year-one recurring benefits; grows by `benefitsGrowthRate` each year. */
+  annualRecurringBenefits: number;
+  /** Year-one run cost; grows by `costGrowthRate` each year. */
+  annualRunCost: number;
+  benefitsGrowthRate: number;
+  costGrowthRate: number;
+  /** One-time saving per month (e.g. deferred hiring), applied for the first `oneTimeMonths`. */
+  oneTimeMonthly: number;
+  oneTimeMonths: number;
+}
 
 /**
- * Months until cumulative net value covers the initial investment, using year-one values.
- * A one-time monthly saving (e.g. deferred hiring) applies only during its first `oneTimeMonths`.
- * Returns null when payback is never reached.
+ * Months until cumulative net value covers the initial investment. Simulates month by month:
+ * recurring benefits and costs grow once per year, the one-time saving applies only during its
+ * window, and the crossing month is interpolated. Returns null if not reached within
+ * MAX_PAYBACK_MONTHS. With zero growth this equals the closed-form payback.
  */
-export function calculatePaybackMonths(
-  initialCost: number,
-  recurringMonthlyNet: number,
-  oneTimeMonthly: number,
-  oneTimeMonths: number,
-): number | null {
-  const earlyMonthlyNet = recurringMonthlyNet + oneTimeMonthly;
-  if (oneTimeMonths > 0 && earlyMonthlyNet > 0 && initialCost <= earlyMonthlyNet * oneTimeMonths)
-    return initialCost / earlyMonthlyNet;
-  if (recurringMonthlyNet <= 0) return null;
-  return (initialCost - oneTimeMonthly * oneTimeMonths) / recurringMonthlyNet;
+export function calculatePaybackMonths(p: PaybackParams): number | null {
+  if (p.initialCost <= 0) return 0;
+  let cumulative = 0;
+  for (let month = 1; month <= MAX_PAYBACK_MONTHS; month++) {
+    const yearIndex = Math.floor((month - 1) / 12);
+    const recurring =
+      (p.annualRecurringBenefits * Math.pow(1 + p.benefitsGrowthRate, yearIndex) -
+        p.annualRunCost * Math.pow(1 + p.costGrowthRate, yearIndex)) /
+      12;
+    const oneTimeShare = clamp(p.oneTimeMonths - (month - 1), 0, 1);
+    const net = recurring + p.oneTimeMonthly * oneTimeShare;
+    if (net > 0 && cumulative + net >= p.initialCost)
+      return month - 1 + (p.initialCost - cumulative) / net;
+    cumulative += net;
+  }
+  return null;
+}
+
+/** Linear heuristic: 5% reserve at health 100, rising to 30% at health 0. Not a benchmark. */
+export function suggestTechnicalDebtReserveRate(technicalHealthScore: number): number {
+  const risk = 1 - clamp(technicalHealthScore / 100);
+  return (
+    SUGGESTED_RESERVE_AT_BEST_HEALTH +
+    risk * (SUGGESTED_RESERVE_AT_WORST_HEALTH - SUGGESTED_RESERVE_AT_BEST_HEALTH)
+  );
 }
 
 export function calculateBusinessCase(raw: Inputs): Results {
@@ -122,13 +160,15 @@ export function calculateBusinessCase(raw: Inputs): Results {
     netBenefit = totalBenefits - totalCosts;
   const roi = totalCosts ? netBenefit / totalCosts : 0,
     benefitCostRatio = totalCosts ? totalBenefits / totalCosts : 0;
-  const monthlyNet = (annualBenefits - annualRunCost) / 12;
-  const paybackMonths = calculatePaybackMonths(
+  const paybackMonths = calculatePaybackMonths({
     initialCost,
-    monthlyNet,
-    hiringDeferralMonthly,
-    deferralMonths,
-  );
+    annualRecurringBenefits: annualBenefits,
+    annualRunCost,
+    benefitsGrowthRate: raw.benefitsGrowthRate,
+    costGrowthRate: raw.costGrowthRate,
+    oneTimeMonthly: hiringDeferralMonthly,
+    oneTimeMonths: deferralMonths,
+  });
   const traditionalBuildCost = raw.traditionalBuildHours * raw.traditionalBuildRate;
   const aiAssistedBuildCost = labor + aiCash;
   const aiDevelopmentSavings = traditionalBuildCost - aiAssistedBuildCost;
@@ -182,6 +222,18 @@ export function calculateBusinessCase(raw: Inputs): Results {
     warnings.push('Win-rate improvement exceeds 3%; validate against historical cohorts.');
   if (technicalRisk === 'High' || technicalRisk === 'Critical')
     warnings.push('Technical-health assessment indicates elevated maintenance risk.');
+  const suggestedTechnicalDebtReserveRate = suggestTechnicalDebtReserveRate(technicalHealthScore);
+  if (
+    raw.technicalDebtReserveRate > 0 &&
+    raw.technicalDebtReserveRate < suggestedTechnicalDebtReserveRate - RESERVE_WARNING_TOLERANCE
+  )
+    warnings.push(
+      `Technical-debt reserve (${formatPercent(raw.technicalDebtReserveRate)}) is below the ${formatPercent(suggestedTechnicalDebtReserveRate)} suggested by the technical-health score.`,
+    );
+  if (paybackMonths !== null && paybackMonths > years * 12)
+    warnings.push(
+      `Payback (${Math.round(paybackMonths)} months) falls after the ${years}-year evaluation horizon.`,
+    );
 
   return {
     annualBenefits,
@@ -203,6 +255,7 @@ export function calculateBusinessCase(raw: Inputs): Results {
     timeToMarketBenefit,
     technicalHealthScore,
     technicalRisk,
+    suggestedTechnicalDebtReserveRate,
     confidenceScore,
     benefitBreakdown: {
       productivity,
@@ -227,5 +280,42 @@ export function calculateBusinessCase(raw: Inputs): Results {
     },
     annualBreakdown,
     warnings,
+  };
+}
+
+/**
+ * Compare observed actuals with the modeled case. `modeled` must be the scenario-adjusted inputs
+ * that produced `results`. Actual ROI is a run-rate projection over the evaluation horizon
+ * (actual annual figures held flat, no growth).
+ */
+export function calculateActuals(modeled: Inputs, results: Results): ActualsResults {
+  const years = Math.max(1, Math.round(modeled.horizonYears));
+  const actualInitialCost = positive(modeled.actualInitialCost);
+  const actualAnnualNet = modeled.actualAnnualBenefits - modeled.actualAnnualRunCost;
+  const actualMonthlyNet = actualAnnualNet / 12;
+  const netToDate = actualMonthlyNet * positive(modeled.monthsSinceLaunch);
+  const actualPaybackMonths =
+    actualInitialCost === 0
+      ? 0
+      : actualMonthlyNet > 0
+        ? actualInitialCost / actualMonthlyNet
+        : null;
+  const horizonCosts = actualInitialCost + modeled.actualAnnualRunCost * years;
+  const horizonBenefits = modeled.actualAnnualBenefits * years;
+  const modeledAnnualNet = results.annualBenefits - results.annualRunCost;
+  return {
+    adoptionVariance: modeled.actualAdoptionRate - clamp(modeled.adoptionRate),
+    annualBenefitsVariance: modeled.actualAnnualBenefits - results.annualBenefits,
+    annualRunCostVariance: modeled.actualAnnualRunCost - results.annualRunCost,
+    initialCostVariance: actualInitialCost - results.initialCost,
+    actualAnnualNet,
+    annualNetVariance: actualAnnualNet - modeledAnnualNet,
+    benefitRealization: results.annualBenefits
+      ? modeled.actualAnnualBenefits / results.annualBenefits
+      : null,
+    netToDate,
+    paybackProgress: actualInitialCost > 0 ? netToDate / actualInitialCost : null,
+    actualPaybackMonths,
+    actualRoi: horizonCosts > 0 ? (horizonBenefits - horizonCosts) / horizonCosts : 0,
   };
 }
