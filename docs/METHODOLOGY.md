@@ -27,7 +27,7 @@ building, operating, and continuing to fund.
 
 All rates (adoption, realization, margin, contribution, probabilities) are clamped to 0–100%.
 
-### Annual benefits
+### Recurring annual benefits
 
 | Benefit              | Formula                                                                                             |
 | -------------------- | --------------------------------------------------------------------------------------------------- |
@@ -36,12 +36,27 @@ All rates (adoption, realization, margin, contribution, probabilities) are clamp
 | Reconciliation       | hours saved per month × 12 × analyst rate × adoption × realization                                  |
 | Recovered capacity   | capacity hours per year × loaded hourly rate × capacity realization × adoption                      |
 | Contractor avoidance | contractor hours avoided × contractor rate × adoption                                               |
-| Deferred hiring      | FTEs deferred × months deferred × monthly loaded FTE cost × adoption                                |
 | Win-rate influence   | influenced pipeline × incremental win rate × gross margin × contribution × adoption                 |
 | Opportunity coverage | additional opportunities × average deal value × win rate × gross margin × contribution × adoption   |
 | Risk reduction       | financial exposure × probability × expected risk reduction                                          |
 
-**Annual benefits** is the sum of all rows.
+**Annual benefits** is the sum of all rows: the year-one recurring benefit. It drives the
+recurring benefit mix chart, time-to-market value, and the Actuals comparison.
+
+### One-time benefits
+
+Deferred hiring is a one-time saving: the loaded cost of each deferred hire is avoided only for the
+months the hire is postponed, starting at go-live.
+
+```text
+Deferral per month      = FTE hires deferred × monthly loaded FTE cost × adoption
+Hiring deferral (total) = deferral per month × min(months deferred, horizon × 12)
+OneTime_t               = deferral per month × (deferral months falling in year t, 0–12)
+```
+
+A 6-month deferral lands entirely in year 1; an 18-month deferral is split 12 / 6 across years 1
+and 2. One-time benefits are not subject to benefit growth, and months beyond the evaluation
+horizon are excluded.
 
 ### Initial investment
 
@@ -72,7 +87,7 @@ Annual run cost = base run cost + tech-debt reserve
 For each year _t_ = 1 … _N_ (evaluation horizon):
 
 ```text
-Benefits_t = annual benefits × (1 + benefit growth)^(t − 1)
+Benefits_t = annual benefits × (1 + benefit growth)^(t − 1) + OneTime_t
 Costs_t    = annual run cost × (1 + cost growth)^(t − 1)
 Net_t      = Benefits_t − Costs_t
 ```
@@ -84,11 +99,25 @@ Net benefit         = total benefits − TCO
 ROI                 = net benefit ÷ TCO
 Benefit-cost ratio  = total benefits ÷ TCO
 NPV                 = −initial cost + Σ Net_t ÷ (1 + discount rate)^t
-Payback (months)    = initial cost ÷ ((annual benefits − annual run cost) ÷ 12)
 ```
 
-The initial investment is treated as a year-0 outflow and is not discounted. Payback uses
-year-one values and returns "Not reached" when annual run cost meets or exceeds annual benefits.
+The initial investment is treated as a year-0 outflow and is not discounted.
+
+**Payback** is the month in which cumulative net value covers the initial investment, using
+year-one values. The deferral boost applies only during the deferral months:
+
+```text
+Recurring monthly net = (annual benefits − annual run cost) ÷ 12
+Early monthly net     = recurring monthly net + deferral per month
+
+If initial cost ≤ early monthly net × months deferred:
+  Payback = initial cost ÷ early monthly net
+Otherwise:
+  Payback = (initial cost − deferral per month × months deferred) ÷ recurring monthly net
+```
+
+Payback returns "Not reached" when the deferral window ends before payback and recurring monthly
+net is zero or negative.
 
 ### AI development comparison
 
@@ -168,7 +197,7 @@ discussion, not a statistical confidence interval.
 - Incremental win-rate improvement exceeds 3 percentage points
 - No technical-debt reserve or no annual maintenance is included
 - AI spend is included with zero human oversight hours
-- Annual run cost meets or exceeds annual benefits
+- Recurring annual run cost meets or exceeds recurring annual benefits
 - Recovered capacity and deferred hiring are both claimed (possible double counting)
 - Technical risk is High or Critical
 
@@ -234,9 +263,6 @@ Approval questions:
 
 ## Known limitations
 
-- **Deferred hiring recurs annually.** It is included in annual benefits and therefore repeats
-  every year of the horizon, although a hiring deferral is usually a one-time saving. Set it to
-  the per-year amount you expect, or zero after year one, until this is modeled separately.
 - **Payback ignores growth.** It uses year-one benefits and costs.
 - **Currency is USD only.** The `currency` input exists but is not yet applied to formatting.
 - **No persistence.** Inputs are lost on refresh; export JSON to keep a model.

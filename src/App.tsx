@@ -119,14 +119,15 @@ const groups: Record<string, Group[]> = {
     },
     {
       title: 'Capacity and workforce',
-      description: 'Value recovered capacity, contractor avoidance, and hiring timing.',
+      description:
+        'Value recovered capacity and contractor avoidance. Deferred hiring is a one-time saving.',
       fields: [
         { key: 'capacityHoursRecoveredYear', label: 'Capacity hours recovered/year' },
         { key: 'capacityRealizationRate', label: 'Capacity realization', kind: 'percent' },
         { key: 'contractorHoursAvoided', label: 'Contractor hours avoided' },
         { key: 'contractorHourlyRate', label: 'Contractor rate', kind: 'money' },
-        { key: 'deferredHires', label: 'FTEs deferred' },
-        { key: 'monthsDeferred', label: 'Months deferred' },
+        { key: 'deferredHires', label: 'FTE hires deferred' },
+        { key: 'monthsDeferred', label: 'Months each hire is deferred' },
         { key: 'monthlyLoadedFteCost', label: 'Monthly loaded FTE cost', kind: 'money' },
       ],
     },
@@ -252,7 +253,7 @@ const groups: Record<string, Group[]> = {
       description: 'Compare the approved model with observed results.',
       fields: [
         { key: 'actualAdoptionRate', label: 'Actual adoption', kind: 'percent' },
-        { key: 'actualAnnualBenefits', label: 'Actual annual benefits', kind: 'money' },
+        { key: 'actualAnnualBenefits', label: 'Actual annual recurring benefits', kind: 'money' },
         { key: 'actualAnnualRunCost', label: 'Actual annual run cost', kind: 'money' },
         { key: 'actualInitialCost', label: 'Actual initial cost', kind: 'money' },
       ],
@@ -502,6 +503,10 @@ function App() {
                     <span>Recovered capacity</span>
                     <strong>{r.equivalentFte.toFixed(2)} FTE</strong>
                   </div>
+                  <div>
+                    <span>One-time hiring deferral</span>
+                    <strong>{money.format(r.oneTimeBenefitBreakdown.hiringDeferral)}</strong>
+                  </div>
                 </div>
               </article>
             </section>
@@ -509,8 +514,8 @@ function App() {
               <article className="panel">
                 <div className="panel-heading">
                   <div>
-                    <h2>Annual benefit mix</h2>
-                    <p>See exactly what is carrying the ROI.</p>
+                    <h2>Recurring annual benefit mix</h2>
+                    <p>Year-one recurring value. One-time hiring deferral is shown separately.</p>
                   </div>
                 </div>
                 <div className="chart small">
@@ -780,7 +785,7 @@ function App() {
                   </small>
                 </div>
                 <div>
-                  <span>Annual benefits</span>
+                  <span>Annual recurring benefits</span>
                   <strong>{money.format(base.actualAnnualBenefits)}</strong>
                   <small>
                     {money.format(base.actualAnnualBenefits - r.annualBenefits)} variance
