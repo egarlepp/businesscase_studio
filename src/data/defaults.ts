@@ -164,6 +164,21 @@ const scenarioMultipliers: Record<ScenarioName, Partial<Record<keyof Inputs, num
   },
 };
 
+/** Inputs that represent a share (0–100%) and must never exceed 1. */
+export const RATE_KEYS = [
+  'adoptionRate',
+  'realizationRate',
+  'capacityRealizationRate',
+  'contributionRate',
+  'grossMargin',
+  'opportunityWinRate',
+  'riskProbability',
+  'riskReduction',
+  'actualAdoptionRate',
+] as const satisfies readonly (keyof Inputs)[];
+
+export const SCENARIOS: readonly ScenarioName[] = ['Conservative', 'Expected', 'Upside'];
+
 export function applyScenario(base: Inputs, scenario: ScenarioName): Inputs {
   const next = { ...base };
   for (const [key, multiplier] of Object.entries(scenarioMultipliers[scenario])) {
@@ -171,16 +186,6 @@ export function applyScenario(base: Inputs, scenario: ScenarioName): Inputs {
     if (typeof base[typedKey] === 'number')
       (next[typedKey] as number) = Number(base[typedKey]) * Number(multiplier);
   }
-  for (const key of [
-    'adoptionRate',
-    'realizationRate',
-    'capacityRealizationRate',
-    'contributionRate',
-    'grossMargin',
-    'opportunityWinRate',
-    'riskProbability',
-    'riskReduction',
-  ] as const)
-    next[key] = Math.min(next[key], 1);
+  for (const key of RATE_KEYS) next[key] = Math.min(next[key], 1);
   return next;
 }

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  MAX_HORIZON_YEARS,
   MAX_PAYBACK_MONTHS,
+  clampHorizonYears,
   calculateActuals,
   calculateBusinessCase,
   calculatePaybackMonths,
@@ -359,5 +361,17 @@ describe('applyScenario', () => {
     const base = { ...defaultInputs };
     applyScenario(base, 'Conservative');
     expect(base).toEqual(defaultInputs);
+  });
+});
+
+describe('horizon bounds', () => {
+  it('clamps the evaluation horizon to 1–50 years', () => {
+    expect(clampHorizonYears(0)).toBe(1);
+    expect(clampHorizonYears(2.6)).toBe(3);
+    expect(clampHorizonYears(1e9)).toBe(MAX_HORIZON_YEARS);
+    expect(clampHorizonYears(Number.NaN)).toBe(1);
+    expect(
+      calculateBusinessCase({ ...defaultInputs, horizonYears: 1e9 }).annualBreakdown,
+    ).toHaveLength(MAX_HORIZON_YEARS);
   });
 });

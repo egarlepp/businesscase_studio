@@ -3,6 +3,12 @@ const clamp = (v: number, min = 0, max = 1) => Math.min(Math.max(v, min), max);
 const positive = (v: number) => Math.max(v, 0);
 const formatPercent = (v: number) => `${Math.round(v * 1000) / 10}%`;
 
+/** Evaluation horizons are rounded and bounded to keep the model (and the UI) responsive. */
+export const MAX_HORIZON_YEARS = 50;
+export function clampHorizonYears(value: number): number {
+  return Number.isFinite(value) ? Math.min(MAX_HORIZON_YEARS, Math.max(1, Math.round(value))) : 1;
+}
+
 /** Payback search stops after this many months (50 years) and reports "not reached". */
 export const MAX_PAYBACK_MONTHS = 600;
 
@@ -64,7 +70,7 @@ export function calculateBusinessCase(raw: Inputs): Results {
     capRealization = clamp(raw.capacityRealizationRate);
   const grossMargin = clamp(raw.grossMargin),
     contribution = clamp(raw.contributionRate),
-    years = Math.max(1, Math.round(raw.horizonYears));
+    years = clampHorizonYears(raw.horizonYears);
   const productivity =
     raw.users *
     (raw.minutesSavedPerUserWeek / 60) *
@@ -289,7 +295,7 @@ export function calculateBusinessCase(raw: Inputs): Results {
  * (actual annual figures held flat, no growth).
  */
 export function calculateActuals(modeled: Inputs, results: Results): ActualsResults {
-  const years = Math.max(1, Math.round(modeled.horizonYears));
+  const years = clampHorizonYears(modeled.horizonYears);
   const actualInitialCost = positive(modeled.actualInitialCost);
   const actualAnnualNet = modeled.actualAnnualBenefits - modeled.actualAnnualRunCost;
   const actualMonthlyNet = actualAnnualNet / 12;
