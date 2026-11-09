@@ -94,7 +94,7 @@ select {
 }
 .sidebar-note span {
   font-size: 12px;
-  color: #8997b2;
+  color: #a9b5cc;
   margin-top: 4px;
 }
 main {
@@ -180,26 +180,31 @@ header p,
   top: 17px;
   opacity: 0.85;
 }
-.metric span,
-.metric small,
-.metric strong {
+.metric > small,
+.metric > strong {
   display: block;
 }
-.metric span {
+.metric-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.metric-top > span {
   font-size: 13px;
-  color: #687184;
+  color: #5c6577;
 }
-.metric.featured span,
-.metric.featured small {
-  color: #e5e2ff;
+.metric.featured .metric-top > span,
+.metric.featured > small {
+  color: #f0eeff;
 }
-.metric strong {
+.metric > strong {
   font-size: 28px;
   margin: 15px 0 10px;
 }
-.metric small {
+.metric > small {
   font-size: 12px;
-  color: #8991a1;
+  color: #5c6577;
 }
 .metric-grid.detail {
   margin-top: 18px;
@@ -259,18 +264,25 @@ header p,
 .variance-list > div:last-child {
   border: 0;
 }
-.score-list span,
-.variance-list span {
-  color: #6b7486;
+.score-list,
+.variance-list {
+  margin: 0;
+}
+.score-list dt,
+.variance-list dt {
+  color: #5c6577;
   font-size: 13px;
 }
-.score-list strong,
-.variance-list strong {
+.score-list dd,
+.variance-list dd {
+  margin: 0;
   font-size: 16px;
+  font-weight: 700;
+  text-align: right;
 }
 .variance-list small {
   grid-column: 1/-1;
-  color: #9299a7;
+  color: #5c6577;
 }
 .warning-list {
   display: grid;
@@ -303,7 +315,7 @@ header p,
   display: grid;
   gap: 7px;
 }
-.field > span {
+.field > label {
   font-size: 12px;
   font-weight: 700;
   color: #5c6577;
@@ -331,13 +343,13 @@ header p,
   position: absolute;
   right: 10px;
   top: 10px;
-  color: #8c94a3;
+  color: #5c6577;
 }
 .input-wrap .prefix {
   position: absolute;
   left: 10px;
   top: 10px;
-  color: #8c94a3;
+  color: #5c6577;
   z-index: 2;
 }
 .form-panel {
@@ -356,7 +368,7 @@ header p,
   font-size: 44px;
 }
 .health-score span {
-  color: #7c8494;
+  color: #5c6577;
 }
 .table-wrap {
   overflow: auto;
@@ -403,6 +415,10 @@ td select {
 }
 .report-card ul {
   padding-left: 20px;
+}
+.primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 .primary {
   border: 0;
@@ -480,4 +496,263 @@ td select {
   .chart {
     height: 240px;
   }
+}
+
+/* Accessibility helpers */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -60px;
+  z-index: 100;
+  background: #5f49d7;
+  color: white;
+  padding: 10px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+}
+.skip-link:focus {
+  top: 12px;
+}
+:focus-visible {
+  outline: 3px solid #7c68e8;
+  outline-offset: 2px;
+}
+main:focus {
+  outline: none;
+}
+
+/* Header save indicator and footer */
+.save-state {
+  font-size: 12px;
+  color: #5c6577;
+}
+.app-footer {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+  color: #5c6577;
+  margin-top: 24px;
+}
+
+/* Layout helpers */
+.span-2 {
+  grid-column: 1 / -1;
+}
+.inline-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 13px;
+  color: #5c6577;
+}
+.inline-controls select {
+  border: 1px solid #dce1ea;
+  border-radius: 7px;
+  padding: 6px;
+  background: white;
+}
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 6px 0 12px;
+}
+.button-row .primary {
+  margin-top: 0;
+}
+.secondary {
+  border: 1px solid #d3d8e2;
+  border-radius: 9px;
+  background: white;
+  color: #2d3448;
+  padding: 10px 13px;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  cursor: pointer;
+}
+.secondary:hover {
+  background: #f5f6fa;
+}
+.warning ul,
+.success ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+td small {
+  color: #5c6577;
+}
+
+/* Formula explanations */
+.info-button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  opacity: 0.8;
+  padding: 2px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-grid;
+  place-items: center;
+}
+.info-button:hover,
+.info-button[aria-expanded='true'] {
+  opacity: 1;
+  background: #0000000f;
+}
+.metric .formula-popover {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: 44px;
+  z-index: 20;
+  max-height: 340px;
+  overflow: auto;
+}
+.formula-popover {
+  margin-top: 10px;
+  background: white;
+  color: #172033;
+  border: 1px solid #dfe3ec;
+  border-radius: 10px;
+  padding: 10px 12px;
+  box-shadow: 0 6px 18px #18213a1f;
+}
+.formula-details {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.formula-expression {
+  margin: 0 0 8px;
+}
+.formula-expression code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  white-space: normal;
+  color: #2d3448;
+}
+.formula-inputs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+}
+.formula-inputs li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #5c6577;
+}
+.formula-inputs strong {
+  color: #172033;
+  white-space: nowrap;
+}
+.formula-deps {
+  margin: 8px 0 0;
+  color: #5c6577;
+}
+.trace-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.trace-item {
+  border: 1px solid #edf0f5;
+  border-radius: 10px;
+  padding: 12px;
+  break-inside: avoid;
+}
+.trace-item h3 {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 14px;
+  margin: 0 0 6px;
+}
+@media (max-width: 760px) {
+  .trace-list {
+    grid-template-columns: 1fr;
+  }
+  .panel-heading {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+/* Print: the Reports page becomes a document. */
+.print-footer {
+  display: none;
+}
+@media print {
+  @page {
+    margin: 14mm;
+  }
+  :root,
+  body {
+    background: white;
+  }
+  .sidebar,
+  .header-actions,
+  .no-print,
+  .skip-link,
+  .info-button {
+    display: none !important;
+  }
+  .app-shell {
+    display: block;
+  }
+  main {
+    padding: 0;
+  }
+  .panel,
+  .metric {
+    border: 1px solid #d7dbe3;
+    box-shadow: none;
+    break-inside: avoid;
+  }
+  .form-layout,
+  .dashboard-grid {
+    display: block;
+  }
+  .form-layout > .panel,
+  .dashboard-grid > .panel {
+    margin-bottom: 10px;
+  }
+  .table-wrap {
+    overflow: visible;
+  }
+  th,
+  td {
+    white-space: normal;
+  }
+  .print-footer {
+    display: block;
+    font-size: 11px;
+    color: #5c6577;
+  }
+  .link-button {
+    color: inherit;
+    padding: 0;
+  }
+}
+
+tbody th {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #172033;
 }

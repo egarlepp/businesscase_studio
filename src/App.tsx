@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import {
   AlertTriangle,
   BarChart3,
@@ -10,16 +10,20 @@ import {
   CircleDollarSign,
   ClipboardList,
   Download,
+  FileSpreadsheet,
   FileText,
   Gauge,
   HeartPulse,
+  Printer,
   RefreshCw,
   Scale,
   ShieldCheck,
   Sparkles,
   Target,
   TrendingUp,
+  Upload,
   Users,
+  type LucideIcon,
 } from 'lucide-react';
 import {
   Area,
@@ -33,37 +37,29 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { calculateBusinessCase } from './calculations/engine';
-import { applyScenario, defaultAssumptions, defaultInputs } from './data/defaults';
+import { calculateActuals, calculateBusinessCase } from './calculations/engine';
+import { FORMULAS, getFormula } from './calculations/formulas';
+import { applyScenario, defaultAssumptions, defaultInputs, SCENARIOS } from './data/defaults';
+import { buildCashFlowCsv, downloadFile, fileSlug } from './export/csv';
+import {
+  createDraftFile,
+  getBrowserStorage,
+  loadStoredDraft,
+  parseDraftText,
+  saveStoredDraft,
+  type DraftState,
+} from './persistence/draft';
 import type { AssumptionItem, Inputs, ScenarioName } from './types';
+import { ChartTable } from './ui/components/ChartTable';
+import { Field } from './ui/components/Field';
+import { FormulaDetails, FormulaInfo } from './ui/components/FormulaInfo';
+import { SensitivityPanel } from './ui/components/SensitivityPanel';
+import { formatFormulaValue } from './ui/display';
+import { FIELD_GROUPS, type Section } from './ui/fields';
+import { createFormatters } from './ui/format';
+import { APP_VERSION } from './version';
 
-type Section =
-  | 'Overview'
-  | 'Profile'
-  | 'Benefits'
-  | 'TCO'
-  | 'AI Development'
-  | 'Technical Health'
-  | 'Scenarios'
-  | 'Assumptions'
-  | 'Actuals'
-  | 'Reports';
-type FieldDef = {
-  key: keyof Inputs;
-  label: string;
-  help?: string;
-  kind?: 'text' | 'number' | 'money' | 'percent' | 'score';
-};
-type Group = { title: string; description: string; fields: FieldDef[] };
-const money = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  maximumFractionDigits: 0,
-});
-const pct = new Intl.NumberFormat('en-US', { style: 'percent', maximumFractionDigits: 1 });
-const n = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
-
-const sections: Array<[Section, typeof BarChart3]> = [
+const SECTIONS: Array<[Section, LucideIcon]> = [
   ['Overview', BarChart3],
   ['Profile', BriefcaseBusiness],
   ['Benefits', Sparkles],
@@ -75,302 +71,208 @@ const sections: Array<[Section, typeof BarChart3]> = [
   ['Actuals', Target],
   ['Reports', FileText],
 ];
-const groups: Record<string, Group[]> = {
-  Profile: [
-    {
-      title: 'Application profile',
-      description: 'Define the initiative, owner, scope, and financial horizon.',
-      fields: [
-        { key: 'applicationName', label: 'Application or initiative', kind: 'text' },
-        { key: 'sponsor', label: 'Executive sponsor', kind: 'text' },
-        { key: 'department', label: 'Department', kind: 'text' },
-        { key: 'lifecycleStage', label: 'Lifecycle stage', kind: 'text' },
-        { key: 'horizonYears', label: 'Evaluation years' },
-        { key: 'discountRate', label: 'Discount rate', kind: 'percent' },
-        { key: 'benefitsGrowthRate', label: 'Annual benefit growth', kind: 'percent' },
-        { key: 'costGrowthRate', label: 'Annual cost growth', kind: 'percent' },
-      ],
-    },
-    {
-      title: 'Organization and scope',
-      description: 'Use segmented economics instead of one magical blended rate.',
-      fields: [
-        { key: 'users', label: 'Target users' },
-        { key: 'managers', label: 'Managers' },
-        { key: 'loadedHourlyRate', label: 'User loaded hourly rate', kind: 'money' },
-        { key: 'managerHourlyRate', label: 'Manager loaded hourly rate', kind: 'money' },
-        { key: 'analystHourlyRate', label: 'Analyst loaded hourly rate', kind: 'money' },
-        { key: 'workWeeks', label: 'Working weeks/year' },
-        { key: 'annualProductiveHours', label: 'Productive hours/FTE/year' },
-      ],
-    },
-  ],
-  Benefits: [
-    {
-      title: 'Productivity',
-      description: 'Time savings adjusted for adoption and realization.',
-      fields: [
-        { key: 'minutesSavedPerUserWeek', label: 'Minutes saved/user/week' },
-        { key: 'managerHoursSavedMonth', label: 'Manager hours saved/month' },
-        { key: 'reconciliationHoursSavedMonth', label: 'Reconciliation hours saved/month' },
-        { key: 'adoptionRate', label: 'Adoption rate', kind: 'percent' },
-        { key: 'realizationRate', label: 'Realization factor', kind: 'percent' },
-      ],
-    },
-    {
-      title: 'Capacity and workforce',
-      description:
-        'Value recovered capacity and contractor avoidance. Deferred hiring is a one-time saving.',
-      fields: [
-        { key: 'capacityHoursRecoveredYear', label: 'Capacity hours recovered/year' },
-        { key: 'capacityRealizationRate', label: 'Capacity realization', kind: 'percent' },
-        { key: 'contractorHoursAvoided', label: 'Contractor hours avoided' },
-        { key: 'contractorHourlyRate', label: 'Contractor rate', kind: 'money' },
-        { key: 'deferredHires', label: 'FTE hires deferred' },
-        { key: 'monthsDeferred', label: 'Months each hire is deferred' },
-        { key: 'monthlyLoadedFteCost', label: 'Monthly loaded FTE cost', kind: 'money' },
-      ],
-    },
-    {
-      title: 'Revenue influence',
-      description: 'Conservative attribution using margin and contribution factors.',
-      fields: [
-        { key: 'influencedPipeline', label: 'Influenced pipeline', kind: 'money' },
-        { key: 'incrementalWinRate', label: 'Incremental win rate', kind: 'percent' },
-        { key: 'grossMargin', label: 'Gross margin', kind: 'percent' },
-        { key: 'contributionRate', label: 'Application contribution', kind: 'percent' },
-        { key: 'additionalOpportunities', label: 'Additional opportunities' },
-        { key: 'averageDealValue', label: 'Average deal value', kind: 'money' },
-        { key: 'opportunityWinRate', label: 'Expected win rate', kind: 'percent' },
-      ],
-    },
-    {
-      title: 'Risk reduction',
-      description: 'Probability-weighted financial exposure reduction.',
-      fields: [
-        { key: 'riskExposure', label: 'Financial exposure', kind: 'money' },
-        { key: 'riskProbability', label: 'Probability', kind: 'percent' },
-        { key: 'riskReduction', label: 'Expected risk reduction', kind: 'percent' },
-      ],
-    },
-  ],
-  TCO: [
-    {
-      title: 'Build labor',
-      description: 'Include discovery through launch—not just coding hours.',
-      fields: [
-        { key: 'initialLaborHours', label: 'Core development hours' },
-        { key: 'discoveryHours', label: 'Discovery hours' },
-        { key: 'architectureHours', label: 'Architecture hours' },
-        { key: 'testingHours', label: 'Testing hours' },
-        { key: 'securityReviewHours', label: 'Security review hours' },
-        { key: 'documentationHours', label: 'Documentation hours' },
-        { key: 'trainingHours', label: 'Training/launch hours' },
-        { key: 'initialLaborRate', label: 'Build loaded hourly rate', kind: 'money' },
-        { key: 'otherInitialCost', label: 'Other initial costs', kind: 'money' },
-      ],
-    },
-    {
-      title: 'Run platform',
-      description: 'Recurring infrastructure and usage-based services.',
-      fields: [
-        { key: 'monthlyHosting', label: 'Monthly hosting', kind: 'money' },
-        { key: 'monthlyDatabase', label: 'Monthly database', kind: 'money' },
-        { key: 'monthlyMonitoring', label: 'Monthly monitoring/logging', kind: 'money' },
-        { key: 'monthlyAiRuntime', label: 'Monthly AI runtime', kind: 'money' },
-        { key: 'monthlySupportHours', label: 'Monthly support hours' },
-        { key: 'supportHourlyRate', label: 'Support hourly rate', kind: 'money' },
-      ],
-    },
-    {
-      title: 'Change and govern',
-      description: 'Plan for enhancements, security, training, and debt repayment.',
-      fields: [
-        { key: 'annualMaintenance', label: 'Annual maintenance', kind: 'money' },
-        { key: 'annualEnhancements', label: 'Annual enhancements', kind: 'money' },
-        { key: 'annualGovernance', label: 'Annual governance', kind: 'money' },
-        { key: 'annualSecurity', label: 'Annual security', kind: 'money' },
-        { key: 'annualTraining', label: 'Annual onboarding/training', kind: 'money' },
-        { key: 'technicalDebtReserveRate', label: 'Technical debt reserve', kind: 'percent' },
-      ],
-    },
-  ],
-  'AI Development': [
-    {
-      title: 'Token economics',
-      description: 'Separate direct model spend from human oversight.',
-      fields: [
-        { key: 'aiInputTokens', label: 'Input tokens' },
-        { key: 'aiOutputTokens', label: 'Output tokens' },
-        { key: 'aiCachedTokens', label: 'Cached tokens' },
-        { key: 'aiInputRatePerMillion', label: 'Input $/1M tokens', kind: 'money' },
-        { key: 'aiOutputRatePerMillion', label: 'Output $/1M tokens', kind: 'money' },
-        { key: 'aiCachedRatePerMillion', label: 'Cached $/1M tokens', kind: 'money' },
-        { key: 'aiSubscriptions', label: 'AI subscriptions', kind: 'money' },
-      ],
-    },
-    {
-      title: 'Human oversight',
-      description: 'Prompting is only the opening act; review and remediation count too.',
-      fields: [
-        { key: 'aiPromptingHours', label: 'Prompting hours' },
-        { key: 'aiReviewHours', label: 'Code review hours' },
-        { key: 'aiDebuggingHours', label: 'Debugging hours' },
-        { key: 'aiSecurityRemediationHours', label: 'Security remediation hours' },
-      ],
-    },
-    {
-      title: 'Traditional comparison',
-      description: 'Compare against a credible alternative build estimate.',
-      fields: [
-        { key: 'traditionalBuildHours', label: 'Traditional build hours' },
-        { key: 'traditionalBuildRate', label: 'Traditional hourly rate', kind: 'money' },
-        { key: 'monthsAccelerated', label: 'Months accelerated' },
-      ],
-    },
-  ],
-  'Technical Health': [
-    {
-      title: 'Maintainability assessment',
-      description: 'Score 1 (strong) to 5 (critical risk).',
-      fields: [
-        { key: 'architectureScore', label: 'Architecture', kind: 'score' },
-        { key: 'testingScore', label: 'Automated testing', kind: 'score' },
-        { key: 'documentationScore', label: 'Documentation', kind: 'score' },
-        { key: 'securityScore', label: 'Security validation', kind: 'score' },
-        { key: 'dependencyScore', label: 'Dependency health', kind: 'score' },
-        { key: 'deploymentScore', label: 'Deployment automation', kind: 'score' },
-        { key: 'observabilityScore', label: 'Observability', kind: 'score' },
-        { key: 'ownershipScore', label: 'Code ownership', kind: 'score' },
-        { key: 'integrationScore', label: 'Integration resilience', kind: 'score' },
-        { key: 'portabilityScore', label: 'AI/provider portability', kind: 'score' },
-      ],
-    },
-  ],
-  Actuals: [
-    {
-      title: 'Realization tracking',
-      description: 'Compare the approved model with observed results.',
-      fields: [
-        { key: 'actualAdoptionRate', label: 'Actual adoption', kind: 'percent' },
-        { key: 'actualAnnualBenefits', label: 'Actual annual recurring benefits', kind: 'money' },
-        { key: 'actualAnnualRunCost', label: 'Actual annual run cost', kind: 'money' },
-        { key: 'actualInitialCost', label: 'Actual initial cost', kind: 'money' },
-      ],
-    },
-  ],
-};
 
-function Field({
-  def,
-  value,
-  onChange,
-}: {
-  def: FieldDef;
-  value: string | number;
-  onChange: (k: keyof Inputs, v: string | number) => void;
-}) {
-  if (def.kind === 'text')
-    return (
-      <input
-        className="input"
-        value={String(value)}
-        onChange={(e) => onChange(def.key, e.target.value)}
-      />
-    );
-  if (def.kind === 'score')
-    return (
-      <select
-        className="input"
-        value={Number(value)}
-        onChange={(e) => onChange(def.key, Number(e.target.value))}
-      >
-        {[1, 2, 3, 4, 5].map((x) => (
-          <option key={x} value={x}>
-            {x} —{' '}
-            {x === 1
-              ? 'Strong'
-              : x === 2
-                ? 'Good'
-                : x === 3
-                  ? 'Moderate'
-                  : x === 4
-                    ? 'High risk'
-                    : 'Critical'}
-          </option>
-        ))}
-      </select>
-    );
-  const percent = def.kind === 'percent',
-    display = percent ? Number(value) * 100 : Number(value);
-  return (
-    <div className="input-wrap">
-      {def.kind === 'money' && <span className="prefix">$</span>}
-      <input
-        className="input"
-        type="number"
-        min="0"
-        step={percent ? '0.1' : '1'}
-        value={Number.isFinite(display) ? display : 0}
-        onChange={(e) =>
-          onChange(def.key, percent ? Number(e.target.value) / 100 : Number(e.target.value))
-        }
-      />
-      {percent && <span className="suffix">%</span>}
-    </div>
-  );
-}
+const CONFIDENCE_OPTIONS: AssumptionItem['confidence'][] = [
+  'Measured',
+  'Validated',
+  'Estimated',
+  'Proxy',
+  'Speculative',
+];
+const STATUS_OPTIONS: AssumptionItem['status'][] = ['Draft', 'Reviewed', 'Approved'];
+
+const CHART_COLORS = { benefits: '#2f7d5b', costs: '#c2410c', net: '#5f49d7', bar: '#5f49d7' };
+
+const initialState = (): DraftState =>
+  loadStoredDraft(getBrowserStorage()) ?? {
+    inputs: defaultInputs,
+    scenario: 'Expected',
+    assumptions: defaultAssumptions,
+  };
+
+type ImportStatus = { kind: 'success' | 'error'; message: string; details: string[] } | null;
 
 function App() {
-  const [base, setBase] = useState<Inputs>(defaultInputs);
-  const [scenario, setScenario] = useState<ScenarioName>('Expected');
+  const [initial] = useState(initialState);
+  const [base, setBase] = useState<Inputs>(initial.inputs);
+  const [scenario, setScenario] = useState<ScenarioName>(initial.scenario);
+  const [assumptions, setAssumptions] = useState<AssumptionItem[]>(initial.assumptions);
   const [section, setSection] = useState<Section>('Overview');
-  const [assumptions, setAssumptions] = useState<AssumptionItem[]>(defaultAssumptions);
+  // Probe once: storage availability does not change during a session.
+  const [canPersist] = useState(() => saveStoredDraft(getBrowserStorage(), initial));
+  const [importStatus, setImportStatus] = useState<ImportStatus>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  const fmt = useMemo(() => createFormatters(base.currency), [base.currency]);
   const modeled = useMemo(() => applyScenario(base, scenario), [base, scenario]);
   const r = useMemo(() => calculateBusinessCase(modeled), [modeled]);
-  const update = (k: keyof Inputs, v: string | number) => setBase((c) => ({ ...c, [k]: v }));
-  const scenarioData = (['Conservative', 'Expected', 'Upside'] as ScenarioName[]).map((name) => {
-    const x = calculateBusinessCase(applyScenario(base, name));
-    return {
-      name,
-      ROI: Number((x.roi * 100).toFixed(1)),
-      NPV: Math.round(x.npv),
-      TCO: Math.round(x.totalCosts),
-      Benefits: Math.round(x.totalBenefits),
-    };
-  });
-  const benefits = Object.entries(r.benefitBreakdown).map(([key, value]) => ({
-    name: key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase()),
+  const actuals = useMemo(() => calculateActuals(modeled, r), [modeled, r]);
+  const scenarioData = useMemo(
+    () =>
+      SCENARIOS.map((name) => {
+        const x = calculateBusinessCase(applyScenario(base, name));
+        return {
+          name,
+          roi: x.roi,
+          npv: x.npv,
+          totalCosts: x.totalCosts,
+          totalBenefits: x.totalBenefits,
+          payback: x.paybackMonths,
+        };
+      }),
+    [base],
+  );
+
+  useEffect(() => {
+    if (canPersist) saveStoredDraft(getBrowserStorage(), { inputs: base, scenario, assumptions });
+  }, [canPersist, base, scenario, assumptions]);
+
+  const update = (key: keyof Inputs, value: string | number) =>
+    setBase((current) => ({ ...current, [key]: value }));
+
+  const updateAssumption = (index: number, patch: Partial<AssumptionItem>) =>
+    setAssumptions((items) => items.map((item, i) => (i === index ? { ...item, ...patch } : item)));
+
+  const benefitMix = Object.entries(r.benefitBreakdown).map(([key, value]) => ({
+    name: getFormula(key)?.label ?? key,
     value,
   }));
-  const cash = r.annualBreakdown.map((x) => ({ ...x, year: `Year ${x.year}` }));
-  const actualNet = base.actualAnnualBenefits - base.actualAnnualRunCost;
-  const modeledNet = r.annualBenefits - r.annualRunCost;
+  const cash = r.annualBreakdown.map((x) => ({ ...x, label: `Year ${x.year}` }));
+
   const resetAll = () => {
     if (
       !window.confirm(
-        'Reset all inputs, scenario, and assumptions to the sample defaults? Export the model first if you need to keep it.',
+        'Reset all inputs, scenario, and assumptions to the sample defaults? This also replaces the copy saved in this browser. Export a draft first if you need to keep it.',
       )
     )
       return;
     setBase(defaultInputs);
     setScenario('Expected');
     setAssumptions(defaultAssumptions);
+    setImportStatus(null);
   };
-  const exportJson = () => {
-    const blob = new Blob(
-      [JSON.stringify({ inputs: base, scenario, results: r, assumptions }, null, 2)],
-      { type: 'application/json' },
+
+  const exportDraft = () => {
+    const file = createDraftFile({ inputs: base, scenario, assumptions }, r, APP_VERSION);
+    downloadFile(
+      `${fileSlug(base.applicationName)}.json`,
+      JSON.stringify(file, null, 2),
+      'application/json',
     );
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'business-case-studio.json';
-    a.click();
-    URL.revokeObjectURL(a.href);
   };
+
+  const exportCsv = () =>
+    downloadFile(
+      `${fileSlug(base.applicationName)}-cash-flow.csv`,
+      buildCashFlowCsv(r, fmt.currency),
+      'text/csv;charset=utf-8',
+    );
+
+  const importDraft = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (file.size > 5_000_000) {
+      setImportStatus({ kind: 'error', message: 'The file is larger than 5 MB.', details: [] });
+      return;
+    }
+    const result = parseDraftText(await file.text());
+    if (!result.ok) {
+      setImportStatus({ kind: 'error', message: result.error, details: [] });
+      return;
+    }
+    if (!window.confirm(`Replace the current model with "${file.name}"?`)) return;
+    setBase(result.state.inputs);
+    setScenario(result.state.scenario);
+    setAssumptions(result.state.assumptions);
+    setImportStatus({
+      kind: 'success',
+      message: `Imported "${result.state.inputs.applicationName}".`,
+      details: result.warnings,
+    });
+  };
+
+  const metricCard = (
+    formulaId: string,
+    label: string,
+    value: string,
+    detail: string,
+    featured = false,
+  ) => (
+    <article className={featured ? 'metric featured' : 'metric'}>
+      <div className="metric-top">
+        <span>{label}</span>
+        <FormulaInfo id={formulaId} inputs={modeled} results={r} fmt={fmt} />
+      </div>
+      <strong>{value}</strong>
+      <small>{detail}</small>
+    </article>
+  );
+
+  const scenarioTable = (
+    <div className="table-wrap">
+      <table>
+        <caption className="sr-only">Scenario comparison</caption>
+        <thead>
+          <tr>
+            <th scope="col">Scenario</th>
+            <th scope="col">Benefits</th>
+            <th scope="col">TCO</th>
+            <th scope="col">NPV</th>
+            <th scope="col">ROI</th>
+            <th scope="col">Payback</th>
+          </tr>
+        </thead>
+        <tbody>
+          {scenarioData.map((x) => (
+            <tr key={x.name} className={scenario === x.name ? 'selected-row' : ''}>
+              <th scope="row">
+                <button
+                  type="button"
+                  className="link-button"
+                  aria-pressed={scenario === x.name}
+                  onClick={() => setScenario(x.name)}
+                >
+                  {x.name}
+                </button>
+              </th>
+              <td>{fmt.money(x.totalBenefits)}</td>
+              <td>{fmt.money(x.totalCosts)}</td>
+              <td>{fmt.money(x.npv)}</td>
+              <td>{fmt.percent(x.roi)}</td>
+              <td>{fmt.months(x.payback)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  const warningList = (
+    <div className="warning-list">
+      {r.warnings.length ? (
+        r.warnings.map((w) => (
+          <div className="warning" key={w}>
+            <AlertTriangle size={17} />
+            <span>{w}</span>
+          </div>
+        ))
+      ) : (
+        <div className="success">
+          <CheckCircle2 size={18} />
+          <span>No material modeling warnings.</span>
+        </div>
+      )}
+    </div>
+  );
+
+  const groups = FIELD_GROUPS[section];
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main">
+        Skip to content
+      </a>
       <aside className="sidebar">
         <div className="brand">
           <div className="brand-mark">
@@ -381,11 +283,15 @@ function App() {
             <span>Studio</span>
           </div>
         </div>
-        <nav>
-          {sections.map(([name, Icon]) => (
+        <nav aria-label="Sections">
+          {SECTIONS.map(([name, Icon]) => (
             <button
+              type="button"
               key={name}
               className={section === name ? 'nav-item active' : 'nav-item'}
+              aria-current={section === name ? 'page' : undefined}
+              aria-label={name}
+              title={name}
               onClick={() => setSection(name)}
             >
               <Icon size={18} />
@@ -402,7 +308,7 @@ function App() {
           </div>
         </div>
       </aside>
-      <main>
+      <main id="main" tabIndex={-1}>
         <header>
           <div>
             <span className="eyebrow">BUSINESS CASE / {section.toUpperCase()}</span>
@@ -410,51 +316,57 @@ function App() {
             <p>Quantify value, ownership cost, delivery economics, and realized outcomes.</p>
           </div>
           <div className="header-actions">
-            <div className="scenario-tabs">
-              {(['Conservative', 'Expected', 'Upside'] as ScenarioName[]).map((x) => (
+            <div className="scenario-tabs" role="group" aria-label="Scenario">
+              {SCENARIOS.map((x) => (
                 <button
+                  type="button"
                   key={x}
                   className={scenario === x ? 'selected' : ''}
+                  aria-pressed={scenario === x}
                   onClick={() => setScenario(x)}
                 >
                   {x}
                 </button>
               ))}
             </div>
-            <button className="reset" onClick={resetAll}>
+            <button type="button" className="reset" onClick={resetAll}>
               <RefreshCw size={16} />
               Reset
             </button>
+            <span className="save-state" role="status">
+              {canPersist ? 'Saved in this browser' : 'Not saved: browser storage unavailable'}
+            </span>
           </div>
         </header>
+
         {section === 'Overview' && (
           <>
-            <section className="metric-grid">
-              <article className="metric featured">
-                <div className="metric-icon">
-                  <Calculator size={20} />
-                </div>
-                <span>{base.horizonYears}-year ROI</span>
-                <strong>{pct.format(r.roi)}</strong>
-                <small>{money.format(r.netBenefit)} net benefit</small>
-              </article>
-              <article className="metric">
-                <span>Total cost of ownership</span>
-                <strong>{money.format(r.totalCosts)}</strong>
-                <small>{money.format(r.initialCost)} initial investment</small>
-              </article>
-              <article className="metric">
-                <span>Net present value</span>
-                <strong>{money.format(r.npv)}</strong>
-                <small>{pct.format(base.discountRate)} discount rate</small>
-              </article>
-              <article className="metric">
-                <span>Payback</span>
-                <strong>
-                  {r.paybackMonths === null ? 'Not reached' : `${r.paybackMonths.toFixed(1)} mo.`}
-                </strong>
-                <small>{r.benefitCostRatio.toFixed(2)}× benefit-cost ratio</small>
-              </article>
+            <section className="metric-grid" aria-label="Key metrics">
+              {metricCard(
+                'roi',
+                `${r.annualBreakdown.length}-year ROI`,
+                fmt.percent(r.roi),
+                `${fmt.money(r.netBenefit)} net benefit`,
+                true,
+              )}
+              {metricCard(
+                'totalCosts',
+                'Total cost of ownership',
+                fmt.money(r.totalCosts),
+                `${fmt.money(r.initialCost)} initial investment`,
+              )}
+              {metricCard(
+                'npv',
+                'Net present value',
+                fmt.money(r.npv),
+                `${fmt.percent(modeled.discountRate)} discount rate`,
+              )}
+              {metricCard(
+                'paybackMonths',
+                'Payback',
+                fmt.months(r.paybackMonths),
+                `${r.benefitCostRatio.toFixed(2)}× benefit-cost ratio`,
+              )}
             </section>
             <section className="dashboard-grid">
               <article className="panel chart-panel">
@@ -464,20 +376,54 @@ function App() {
                     <p>Annual modeled benefits and ownership costs.</p>
                   </div>
                 </div>
-                <div className="chart">
+                <div className="chart" aria-hidden="true">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={cash}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey="year" />
-                      <YAxis tickFormatter={(v) => `$${Math.round(v / 1000)}k`} />
-                      <Tooltip formatter={(v) => money.format(Number(v))} />
+                      <XAxis dataKey="label" />
+                      <YAxis tickFormatter={fmt.moneyCompact} width={70} />
+                      <Tooltip formatter={(v) => fmt.money(Number(v))} />
                       <Legend />
-                      <Area type="monotone" dataKey="benefits" fillOpacity={0.2} />
-                      <Area type="monotone" dataKey="costs" fillOpacity={0.12} />
-                      <Area type="monotone" dataKey="cumulativeNet" fillOpacity={0.08} />
+                      <Area
+                        isAnimationActive={false}
+                        type="monotone"
+                        dataKey="benefits"
+                        name="Benefits"
+                        stroke={CHART_COLORS.benefits}
+                        fill={CHART_COLORS.benefits}
+                        fillOpacity={0.2}
+                      />
+                      <Area
+                        isAnimationActive={false}
+                        type="monotone"
+                        dataKey="costs"
+                        name="Costs"
+                        stroke={CHART_COLORS.costs}
+                        fill={CHART_COLORS.costs}
+                        fillOpacity={0.12}
+                      />
+                      <Area
+                        isAnimationActive={false}
+                        type="monotone"
+                        dataKey="cumulativeNet"
+                        name="Cumulative net"
+                        stroke={CHART_COLORS.net}
+                        fill={CHART_COLORS.net}
+                        fillOpacity={0.08}
+                      />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
+                <ChartTable
+                  caption="Annual benefits, costs, and cumulative net value"
+                  columns={['Year', 'Benefits', 'Costs', 'Cumulative net']}
+                  rows={cash.map((y) => [
+                    y.label,
+                    fmt.money(y.benefits),
+                    fmt.money(y.costs),
+                    fmt.money(y.cumulativeNet),
+                  ])}
+                />
               </article>
               <article className="panel">
                 <div className="panel-heading">
@@ -486,28 +432,28 @@ function App() {
                     <p>Decision-readiness indicators.</p>
                   </div>
                 </div>
-                <div className="score-list">
+                <dl className="score-list">
                   <div>
-                    <span>Model confidence</span>
-                    <strong>{r.confidenceScore}%</strong>
+                    <dt>Model confidence</dt>
+                    <dd>{r.confidenceScore}%</dd>
                   </div>
                   <div>
-                    <span>Technical health</span>
-                    <strong>{r.technicalHealthScore.toFixed(0)}/100</strong>
+                    <dt>Technical health</dt>
+                    <dd>{r.technicalHealthScore.toFixed(0)}/100</dd>
                   </div>
                   <div>
-                    <span>Technical risk</span>
-                    <strong>{r.technicalRisk}</strong>
+                    <dt>Technical risk</dt>
+                    <dd>{r.technicalRisk}</dd>
                   </div>
                   <div>
-                    <span>Recovered capacity</span>
-                    <strong>{r.equivalentFte.toFixed(2)} FTE</strong>
+                    <dt>Recovered capacity</dt>
+                    <dd>{r.equivalentFte.toFixed(2)} FTE</dd>
                   </div>
                   <div>
-                    <span>One-time hiring deferral</span>
-                    <strong>{money.format(r.oneTimeBenefitBreakdown.hiringDeferral)}</strong>
+                    <dt>One-time hiring deferral</dt>
+                    <dd>{fmt.money(r.oneTimeBenefitBreakdown.hiringDeferral)}</dd>
                   </div>
-                </div>
+                </dl>
               </article>
             </section>
             <section className="dashboard-grid">
@@ -518,17 +464,27 @@ function App() {
                     <p>Year-one recurring value. One-time hiring deferral is shown separately.</p>
                   </div>
                 </div>
-                <div className="chart small">
+                <div className="chart small" aria-hidden="true">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={benefits} layout="vertical">
+                    <BarChart data={benefitMix} layout="vertical">
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                      <XAxis type="number" tickFormatter={(v) => `$${Math.round(v / 1000)}k`} />
-                      <YAxis type="category" dataKey="name" width={125} />
-                      <Tooltip formatter={(v) => money.format(Number(v))} />
-                      <Bar dataKey="value" />
+                      <XAxis type="number" tickFormatter={fmt.moneyCompact} />
+                      <YAxis type="category" dataKey="name" width={140} />
+                      <Tooltip formatter={(v) => fmt.money(Number(v))} />
+                      <Bar
+                        isAnimationActive={false}
+                        dataKey="value"
+                        name="Annual value"
+                        fill={CHART_COLORS.bar}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
+                <ChartTable
+                  caption="Recurring annual benefit mix"
+                  columns={['Benefit', 'Annual value']}
+                  rows={benefitMix.map((b) => [b.name, fmt.money(b.value)])}
+                />
               </article>
               <article className="panel">
                 <div className="panel-heading">
@@ -537,28 +493,15 @@ function App() {
                     <p>Items requiring evidence or review.</p>
                   </div>
                 </div>
-                <div className="warning-list">
-                  {r.warnings.length ? (
-                    r.warnings.map((w) => (
-                      <div className="warning" key={w}>
-                        <AlertTriangle size={17} />
-                        <span>{w}</span>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="success">
-                      <CheckCircle2 size={18} />
-                      <span>No material modeling warnings.</span>
-                    </div>
-                  )}
-                </div>
+                {warningList}
               </article>
             </section>
           </>
         )}
-        {groups[section] && (
+
+        {groups && (
           <section className="form-layout">
-            {groups[section].map((g) => (
+            {groups.map((g) => (
               <article className="panel form-panel" key={g.title}>
                 <div className="panel-heading">
                   <div>
@@ -568,40 +511,50 @@ function App() {
                 </div>
                 <div className="field-grid">
                   {g.fields.map((def) => (
-                    <label className="field" key={String(def.key)}>
-                      <span>{def.label}</span>
-                      <Field def={def} value={base[def.key]} onChange={update} />
-                    </label>
+                    <Field
+                      key={def.key}
+                      def={def}
+                      value={base[def.key]}
+                      fmt={fmt}
+                      onChange={update}
+                    />
                   ))}
                 </div>
               </article>
             ))}
           </section>
         )}
+
         {section === 'AI Development' && (
-          <section className="metric-grid detail">
+          <section className="metric-grid detail" aria-label="AI development results">
+            {metricCard(
+              'aiAssistedBuildCost',
+              'AI-assisted build',
+              fmt.money(r.aiAssistedBuildCost),
+              'Labor oversight + direct AI',
+            )}
+            {metricCard(
+              'traditionalBuildCost',
+              'Traditional estimate',
+              fmt.money(r.traditionalBuildCost),
+              `${fmt.number(base.traditionalBuildHours)} hours`,
+            )}
             <article className="metric">
-              <span>AI-assisted build</span>
-              <strong>{money.format(r.aiAssistedBuildCost)}</strong>
-              <small>Labor oversight + direct AI</small>
+              <div className="metric-top">
+                <span>Development advantage</span>
+              </div>
+              <strong>{fmt.money(r.aiDevelopmentSavings)}</strong>
+              <small>Traditional estimate − AI-assisted build</small>
             </article>
-            <article className="metric">
-              <span>Traditional estimate</span>
-              <strong>{money.format(r.traditionalBuildCost)}</strong>
-              <small>{n.format(base.traditionalBuildHours)} hours</small>
-            </article>
-            <article className="metric">
-              <span>Development advantage</span>
-              <strong>{money.format(r.aiDevelopmentSavings)}</strong>
-              <small>Before time-to-market value</small>
-            </article>
-            <article className="metric">
-              <span>Earlier value</span>
-              <strong>{money.format(r.timeToMarketBenefit)}</strong>
-              <small>{base.monthsAccelerated} months accelerated</small>
-            </article>
+            {metricCard(
+              'timeToMarketBenefit',
+              'Earlier value',
+              fmt.money(r.timeToMarketBenefit),
+              `${base.monthsAccelerated} months accelerated`,
+            )}
           </section>
         )}
+
         {section === 'Technical Health' && (
           <section className="dashboard-grid">
             <article className="panel health-card">
@@ -612,12 +565,43 @@ function App() {
               </div>
               <h2>{r.technicalRisk} maintainability risk</h2>
               <p>
-                The technical debt reserve currently adds{' '}
-                {money.format(r.costBreakdown.technicalDebt)} per year.
+                The technical debt reserve currently adds {fmt.money(r.costBreakdown.technicalDebt)}{' '}
+                per year.
               </p>
             </article>
             <article className="panel">
-              <h2>Interpretation</h2>
+              <div className="panel-heading">
+                <div>
+                  <h2>Suggested technical-debt reserve</h2>
+                  <p>A heuristic from the health score: 5% at best health, 30% at worst.</p>
+                </div>
+              </div>
+              <dl className="score-list">
+                <div>
+                  <dt>Suggested reserve</dt>
+                  <dd>{fmt.percent(r.suggestedTechnicalDebtReserveRate)}</dd>
+                </div>
+                <div>
+                  <dt>Entered reserve (TCO page)</dt>
+                  <dd>{fmt.percent(base.technicalDebtReserveRate)}</dd>
+                </div>
+              </dl>
+              <button
+                type="button"
+                className="primary"
+                disabled={
+                  Math.abs(base.technicalDebtReserveRate - r.suggestedTechnicalDebtReserveRate) <
+                  0.0005
+                }
+                onClick={() =>
+                  update(
+                    'technicalDebtReserveRate',
+                    Math.round(r.suggestedTechnicalDebtReserveRate * 1000) / 1000,
+                  )
+                }
+              >
+                Apply suggested reserve
+              </button>
               <p className="body-copy">
                 Scores of 1 represent strong controls; scores of 5 represent critical gaps.
                 Prioritize ownership, tests, observability, and documentation before scaling
@@ -626,6 +610,7 @@ function App() {
             </article>
           </section>
         )}
+
         {section === 'Scenarios' && (
           <section className="form-layout">
             <article className="panel">
@@ -637,62 +622,44 @@ function App() {
                   </p>
                 </div>
               </div>
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Scenario</th>
-                      <th>Benefits</th>
-                      <th>TCO</th>
-                      <th>NPV</th>
-                      <th>ROI</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {scenarioData.map((x) => (
-                      <tr key={x.name} className={scenario === x.name ? 'selected-row' : ''}>
-                        <td>
-                          <button
-                            className="link-button"
-                            onClick={() => setScenario(x.name as ScenarioName)}
-                          >
-                            {x.name}
-                          </button>
-                        </td>
-                        <td>{money.format(x.Benefits)}</td>
-                        <td>{money.format(x.TCO)}</td>
-                        <td>{money.format(x.NPV)}</td>
-                        <td>{x.ROI}%</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              {scenarioTable}
             </article>
             <article className="panel">
               <div className="panel-heading">
                 <div>
                   <h2>Scenario ROI</h2>
-                  <p>Visual sensitivity across the standard cases.</p>
+                  <p>ROI across the standard cases.</p>
                 </div>
               </div>
-              <div className="chart">
+              <div className="chart" aria-hidden="true">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={scenarioData}>
+                  <BarChart data={scenarioData.map((x) => ({ name: x.name, roi: x.roi * 100 }))}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="name" />
                     <YAxis unit="%" />
-                    <Tooltip />
-                    <Bar dataKey="ROI" />
+                    <Tooltip formatter={(v) => `${Number(v).toFixed(1)}%`} />
+                    <Bar
+                      isAnimationActive={false}
+                      dataKey="roi"
+                      name="ROI"
+                      fill={CHART_COLORS.bar}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+              <ChartTable
+                caption="ROI by scenario"
+                columns={['Scenario', 'ROI']}
+                rows={scenarioData.map((x) => [x.name, fmt.percent(x.roi)])}
+              />
             </article>
+            <SensitivityPanel inputs={modeled} fmt={fmt} />
           </section>
         )}
+
         {section === 'Assumptions' && (
           <section className="form-layout">
-            <article className="panel">
+            <article className="panel span-2">
               <div className="panel-heading">
                 <div>
                   <h2>Assumption register</h2>
@@ -701,60 +668,50 @@ function App() {
               </div>
               <div className="table-wrap">
                 <table>
+                  <caption className="sr-only">Assumption register</caption>
                   <thead>
                     <tr>
-                      <th>Assumption</th>
-                      <th>Category</th>
-                      <th>Owner</th>
-                      <th>Source</th>
-                      <th>Confidence</th>
-                      <th>Status</th>
+                      <th scope="col">Assumption</th>
+                      <th scope="col">Category</th>
+                      <th scope="col">Owner</th>
+                      <th scope="col">Source</th>
+                      <th scope="col">Confidence</th>
+                      <th scope="col">Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {assumptions.map((a, i) => (
                       <tr key={a.id}>
-                        <td>{a.name}</td>
+                        <th scope="row">{a.name}</th>
                         <td>{a.category}</td>
                         <td>{a.owner}</td>
                         <td>{a.source}</td>
                         <td>
                           <select
+                            aria-label={`Confidence for ${a.name}`}
                             value={a.confidence}
                             onChange={(e) =>
-                              setAssumptions((xs) =>
-                                xs.map((x, j) =>
-                                  j === i
-                                    ? {
-                                        ...x,
-                                        confidence: e.target.value as AssumptionItem['confidence'],
-                                      }
-                                    : x,
-                                ),
-                              )
+                              updateAssumption(i, {
+                                confidence: e.target.value as AssumptionItem['confidence'],
+                              })
                             }
                           >
-                            {['Measured', 'Validated', 'Estimated', 'Proxy', 'Speculative'].map(
-                              (x) => (
-                                <option key={x}>{x}</option>
-                              ),
-                            )}
+                            {CONFIDENCE_OPTIONS.map((x) => (
+                              <option key={x}>{x}</option>
+                            ))}
                           </select>
                         </td>
                         <td>
                           <select
+                            aria-label={`Status for ${a.name}`}
                             value={a.status}
                             onChange={(e) =>
-                              setAssumptions((xs) =>
-                                xs.map((x, j) =>
-                                  j === i
-                                    ? { ...x, status: e.target.value as AssumptionItem['status'] }
-                                    : x,
-                                ),
-                              )
+                              updateAssumption(i, {
+                                status: e.target.value as AssumptionItem['status'],
+                              })
                             }
                           >
-                            {['Draft', 'Reviewed', 'Approved'].map((x) => (
+                            {STATUS_OPTIONS.map((x) => (
                               <option key={x}>{x}</option>
                             ))}
                           </select>
@@ -767,41 +724,43 @@ function App() {
             </article>
           </section>
         )}
+
         {section === 'Actuals' && (
           <section className="dashboard-grid">
             <article className="panel">
               <div className="panel-heading">
                 <div>
                   <h2>Forecast versus actual</h2>
-                  <p>Annualized realization using current observations.</p>
+                  <p>Annualized realization against the {scenario} scenario.</p>
                 </div>
               </div>
-              <div className="variance-list">
+              <dl className="variance-list">
                 <div>
-                  <span>Adoption</span>
-                  <strong>{pct.format(base.actualAdoptionRate)}</strong>
-                  <small>
-                    {pct.format(base.actualAdoptionRate - modeled.adoptionRate)} variance
-                  </small>
+                  <dt>Adoption</dt>
+                  <dd>{fmt.percent(modeled.actualAdoptionRate)}</dd>
+                  <small>{fmt.percent(actuals.adoptionVariance)} variance</small>
                 </div>
                 <div>
-                  <span>Annual recurring benefits</span>
-                  <strong>{money.format(base.actualAnnualBenefits)}</strong>
-                  <small>
-                    {money.format(base.actualAnnualBenefits - r.annualBenefits)} variance
-                  </small>
+                  <dt>Annual recurring benefits</dt>
+                  <dd>{fmt.money(modeled.actualAnnualBenefits)}</dd>
+                  <small>{fmt.money(actuals.annualBenefitsVariance)} variance</small>
                 </div>
                 <div>
-                  <span>Annual run cost</span>
-                  <strong>{money.format(base.actualAnnualRunCost)}</strong>
-                  <small>{money.format(base.actualAnnualRunCost - r.annualRunCost)} variance</small>
+                  <dt>Annual run cost</dt>
+                  <dd>{fmt.money(modeled.actualAnnualRunCost)}</dd>
+                  <small>{fmt.money(actuals.annualRunCostVariance)} variance</small>
                 </div>
                 <div>
-                  <span>Annual net value</span>
-                  <strong>{money.format(actualNet)}</strong>
-                  <small>{money.format(actualNet - modeledNet)} variance</small>
+                  <dt>Annual net value</dt>
+                  <dd>{fmt.money(actuals.actualAnnualNet)}</dd>
+                  <small>{fmt.money(actuals.annualNetVariance)} variance</small>
                 </div>
-              </div>
+                <div>
+                  <dt>Initial investment</dt>
+                  <dd>{fmt.money(modeled.actualInitialCost)}</dd>
+                  <small>{fmt.money(actuals.initialCostVariance)} variance</small>
+                </div>
+              </dl>
             </article>
             <article className="panel">
               <div className="panel-heading">
@@ -813,32 +772,183 @@ function App() {
               <div className="health-score">
                 <TrendingUp size={28} />
                 <strong>
-                  {r.annualBenefits
-                    ? Math.round((base.actualAnnualBenefits / r.annualBenefits) * 100)
-                    : 0}
-                  %
+                  {actuals.benefitRealization === null
+                    ? '—'
+                    : fmt.percent(actuals.benefitRealization)}
                 </strong>
                 <span>benefit realization</span>
               </div>
+              <dl className="score-list">
+                <div>
+                  <dt>Net value to date ({fmt.number(modeled.monthsSinceLaunch)} months)</dt>
+                  <dd>{fmt.money(actuals.netToDate)}</dd>
+                </div>
+                <div>
+                  <dt>Payback progress</dt>
+                  <dd>
+                    {actuals.paybackProgress === null
+                      ? '—'
+                      : fmt.percent(Math.max(actuals.paybackProgress, 0))}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Payback at actual run rate</dt>
+                  <dd>{fmt.months(actuals.actualPaybackMonths)}</dd>
+                </div>
+                <div>
+                  <dt>{r.annualBreakdown.length}-year ROI at actual run rate</dt>
+                  <dd>{fmt.percent(actuals.actualRoi)}</dd>
+                </div>
+              </dl>
             </article>
           </section>
         )}
+
         {section === 'Reports' && (
-          <section className="form-layout">
-            <article className="panel report-card">
+          <section className="form-layout report">
+            <article className="panel report-card span-2">
               <ShieldCheck size={28} />
               <h2>Executive summary</h2>
               <p>
-                {base.applicationName} is modeled to deliver {money.format(r.totalBenefits)} in
-                benefits against {money.format(r.totalCosts)} in {base.horizonYears}-year TCO,
-                producing {pct.format(r.roi)} ROI and {money.format(r.npv)} NPV.
+                {base.applicationName} ({scenario} scenario) is modeled to deliver{' '}
+                {fmt.money(r.totalBenefits)} in benefits against {fmt.money(r.totalCosts)} in{' '}
+                {r.annualBreakdown.length}-year TCO, producing {fmt.percent(r.roi)} ROI and{' '}
+                {fmt.money(r.npv)} NPV.{' '}
+                {r.paybackMonths === null
+                  ? 'Payback is not reached.'
+                  : `Payback is reached in ${fmt.months(r.paybackMonths)}.`}
               </p>
-              <button className="primary" onClick={exportJson}>
-                <Download size={17} />
-                Export model JSON
-              </button>
+              <div className="button-row no-print">
+                <button type="button" className="primary" onClick={exportDraft}>
+                  <Download size={17} />
+                  Export draft (JSON)
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => fileInput.current?.click()}
+                >
+                  <Upload size={17} />
+                  Import draft
+                </button>
+                <button type="button" className="secondary" onClick={exportCsv}>
+                  <FileSpreadsheet size={17} />
+                  Cash flow (CSV)
+                </button>
+                <button type="button" className="secondary" onClick={() => window.print()}>
+                  <Printer size={17} />
+                  Print / Save as PDF
+                </button>
+                <input
+                  ref={fileInput}
+                  type="file"
+                  accept="application/json,.json"
+                  className="sr-only"
+                  tabIndex={-1}
+                  aria-label="Import draft file"
+                  onChange={importDraft}
+                />
+              </div>
+              <div role="status" aria-live="polite" className="no-print">
+                {importStatus && (
+                  <div className={importStatus.kind === 'error' ? 'warning' : 'success'}>
+                    {importStatus.kind === 'error' ? (
+                      <AlertTriangle size={17} />
+                    ) : (
+                      <CheckCircle2 size={17} />
+                    )}
+                    <div>
+                      <span>{importStatus.message}</span>
+                      {importStatus.details.length > 0 && (
+                        <ul>
+                          {importStatus.details.map((d) => (
+                            <li key={d}>{d}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </article>
-            <article className="panel report-card">
+            <article className="panel">
+              <h2>Key metrics</h2>
+              <dl className="score-list">
+                {[
+                  'totalBenefits',
+                  'totalCosts',
+                  'initialCost',
+                  'annualRunCost',
+                  'npv',
+                  'roi',
+                  'paybackMonths',
+                  'benefitCostRatio',
+                ].map((id) => {
+                  const f = getFormula(id)!;
+                  return (
+                    <div key={id}>
+                      <dt>{f.label}</dt>
+                      <dd>{formatFormulaValue(f, r, fmt)}</dd>
+                    </div>
+                  );
+                })}
+              </dl>
+            </article>
+            <article className="panel">
+              <h2>Guardrails</h2>
+              {warningList}
+            </article>
+            <article className="panel span-2">
+              <h2>Scenarios</h2>
+              {scenarioTable}
+            </article>
+            <article className="panel span-2">
+              <h2>Assumptions</h2>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th scope="col">Assumption</th>
+                      <th scope="col">Owner</th>
+                      <th scope="col">Source</th>
+                      <th scope="col">Confidence</th>
+                      <th scope="col">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {assumptions.map((a) => (
+                      <tr key={a.id}>
+                        <th scope="row">{a.name}</th>
+                        <td>{a.owner}</td>
+                        <td>{a.source}</td>
+                        <td>{a.confidence}</td>
+                        <td>{a.status}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </article>
+            <article className="panel span-2">
+              <div className="panel-heading">
+                <div>
+                  <h2>Calculation trace</h2>
+                  <p>Every result, how it is calculated, and where each input is entered.</p>
+                </div>
+              </div>
+              <div className="trace-list">
+                {FORMULAS.map((f) => (
+                  <section key={f.id} className="trace-item" aria-label={f.label}>
+                    <h3>
+                      <span>{f.label}</span>
+                      <strong>{formatFormulaValue(f, r, fmt)}</strong>
+                    </h3>
+                    <FormulaDetails formula={f} inputs={modeled} results={r} fmt={fmt} />
+                  </section>
+                ))}
+              </div>
+            </article>
+            <article className="panel report-card span-2">
               <Users size={28} />
               <h2>Review checklist</h2>
               <ul>
@@ -848,11 +958,19 @@ function App() {
                 <li>Security validates data handling and governance costs.</li>
                 <li>Actuals are reviewed quarterly after launch.</li>
               </ul>
+              <p className="print-footer">
+                Business Case Studio v{APP_VERSION} · {new Date().toLocaleDateString()}
+              </p>
             </article>
           </section>
         )}
+        <footer className="app-footer no-print">
+          <Calculator size={14} /> Business Case Studio v{APP_VERSION}. Inputs are saved only in
+          this browser.
+        </footer>
       </main>
     </div>
   );
 }
+
 export default App;

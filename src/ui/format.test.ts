@@ -28,6 +28,6 @@ describe('createFormatters', () => {
   it('formats payback months', () => {
     const f = createFormatters('USD');
     expect(f.months(null)).toBe('Not reached');
-    expect(f.months(13.66)).toBe('13.7 mo.');
+    expect(f.months(13.66)).toBe('13.7 months');
   });
 });
