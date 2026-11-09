@@ -1,7 +1,7 @@
 {
   "name": "business-case-studio",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Model the ROI, TCO, risk, and realized value of internally developed, AI-assisted, and vibe-coded applications.",
   "license": "MIT",
   "repository": {
@@ -35,6 +35,9 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.8",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.3.0",
@@ -42,6 +45,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.7",
     "globals": "^17.14.0",
+    "jsdom": "^31.0.0",
     "prettier": "^3.9.10",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.72.2",
