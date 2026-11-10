@@ -2,6 +2,9 @@
 
 Thanks for your interest in Business Case Studio. Issues and pull requests are welcome.
 
+This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). By
+participating, you agree to uphold it.
+
 ## Development setup
 
 ```bash
