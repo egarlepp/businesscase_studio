@@ -39,6 +39,10 @@ npm run check
 - **No confidential data.** Do not include real company figures in code, tests, issues, or
   screenshots.
 - **Formatting** is enforced by Prettier; run `npm run format` before committing.
+- **Dependency overrides.** `package.json` forces `minimatch` to `^11.0.1` to patch a
+  denial-of-service advisory (GHSA-g3hv-75wg-m249) that ESLint and typescript-eslint still pull in
+  through `minimatch@^10`. It is dev-only: minimatch never ships in the built app. Remove the
+  override once both packages depend on `minimatch@^11` directly (`npm ls minimatch`).
 
 ## Reporting security issues
 
