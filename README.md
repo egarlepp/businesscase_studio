@@ -98,26 +98,21 @@ are a good place to start contributing.
 
 **Now**
 
-- [#6](https://github.com/egarlepp/businesscase_studio/issues/6) Save, reopen, and import versioned drafts
-- [#7](https://github.com/egarlepp/businesscase_studio/issues/7) In-app formula explanations
-- [#8](https://github.com/egarlepp/businesscase_studio/issues/8) Sensitivity (tornado) analysis
-- [#9](https://github.com/egarlepp/businesscase_studio/issues/9) Configurable currency
-- [#10](https://github.com/egarlepp/businesscase_studio/issues/10) Print-friendly report and CSV export
-- Model accuracy: [#11](https://github.com/egarlepp/businesscase_studio/issues/11) payback with growth,
-  [#12](https://github.com/egarlepp/businesscase_studio/issues/12) health-based debt reserve,
-  [#13](https://github.com/egarlepp/businesscase_studio/issues/13) richer actuals
-- Quality: [#14](https://github.com/egarlepp/businesscase_studio/issues/14) UI tests,
-  [#15](https://github.com/egarlepp/businesscase_studio/issues/15) accessibility
+- [#17](https://github.com/egarlepp/businesscase_studio/issues/17) Build-versus-buy comparison
 
 **Next**
 
-- [#17](https://github.com/egarlepp/businesscase_studio/issues/17) Build-versus-buy comparison
+- [#18](https://github.com/egarlepp/businesscase_studio/issues/18) Team-specific benefit breakouts (unblocked: drafts are now versioned, so saved
+  models can be migrated)
 
 **Later**
 
-- [#18](https://github.com/egarlepp/businesscase_studio/issues/18) Team-specific benefit breakouts
-  (needs versioned drafts for migration)
 - [#19](https://github.com/egarlepp/businesscase_studio/issues/19) Guided setup
+
+**Done in v0.3.0**: drafts and import ([#6](https://github.com/egarlepp/businesscase_studio/issues/6)), formula explanations ([#7](https://github.com/egarlepp/businesscase_studio/issues/7)), tornado
+analysis ([#8](https://github.com/egarlepp/businesscase_studio/issues/8)), currency ([#9](https://github.com/egarlepp/businesscase_studio/issues/9)), print and CSV ([#10](https://github.com/egarlepp/businesscase_studio/issues/10)), payback with growth
+([#11](https://github.com/egarlepp/businesscase_studio/issues/11)), health-based reserve ([#12](https://github.com/egarlepp/businesscase_studio/issues/12)), actuals ([#13](https://github.com/egarlepp/businesscase_studio/issues/13)), UI tests ([#14](https://github.com/egarlepp/businesscase_studio/issues/14)),
+accessibility ([#15](https://github.com/egarlepp/businesscase_studio/issues/15)), and Dependabot fixes ([#16](https://github.com/egarlepp/businesscase_studio/issues/16)).
 
 ## Contributing
 
