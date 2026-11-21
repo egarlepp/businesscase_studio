@@ -5,6 +5,7 @@ import {
   defaultInputs,
   SCENARIOS,
 } from '../data/defaults';
+import { ASSUMPTION_STATUSES, CONFIDENCE_LEVELS } from '../data/assumptions';
 import { normalizeCurrency } from '../ui/format';
 import type { AssumptionItem, Confidence, Inputs, Results, ScenarioName } from '../types';
 
@@ -15,15 +16,6 @@ export const STORAGE_KEY = 'business-case-studio:draft';
 
 const MAX_TEXT_LENGTH = 500;
 const MAX_ASSUMPTIONS = 500;
-const CONFIDENCE_LEVELS: readonly Confidence[] = [
-  'Measured',
-  'Validated',
-  'Estimated',
-  'Proxy',
-  'Speculative',
-];
-const STATUSES: readonly AssumptionItem['status'][] = ['Draft', 'Reviewed', 'Approved'];
-
 /** The editable state of a business case. Results are always recomputed, never restored. */
 export interface DraftState {
   inputs: Inputs;
@@ -132,7 +124,7 @@ function parseAssumptions(raw: unknown, warnings: string[]): AssumptionItem[] {
       confidence: CONFIDENCE_LEVELS.includes(entry.confidence as Confidence)
         ? (entry.confidence as Confidence)
         : 'Estimated',
-      status: STATUSES.includes(entry.status as AssumptionItem['status'])
+      status: ASSUMPTION_STATUSES.includes(entry.status as AssumptionItem['status'])
         ? (entry.status as AssumptionItem['status'])
         : 'Draft',
     });

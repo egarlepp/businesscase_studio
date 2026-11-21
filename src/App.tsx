@@ -39,7 +39,13 @@ import {
 } from 'recharts';
 import { calculateActuals, calculateBusinessCase } from './calculations/engine';
 import { FORMULAS, getFormula } from './calculations/formulas';
-import { applyScenario, defaultAssumptions, defaultInputs, SCENARIOS } from './data/defaults';
+import {
+  applyScenario,
+  BUILD_VS_BUY_CATEGORY,
+  defaultAssumptions,
+  defaultInputs,
+  SCENARIOS,
+} from './data/defaults';
 import { buildCashFlowCsv, downloadFile, fileSlug } from './export/csv';
 import {
   createDraftFile,
@@ -50,6 +56,7 @@ import {
   type DraftState,
 } from './persistence/draft';
 import type { AssumptionItem, Inputs, ScenarioName } from './types';
+import { AssumptionRegister } from './ui/components/AssumptionRegister';
 import { ChartTable } from './ui/components/ChartTable';
 import { Field } from './ui/components/Field';
 import { FormulaDetails, FormulaInfo } from './ui/components/FormulaInfo';
@@ -71,15 +78,6 @@ const SECTIONS: Array<[Section, LucideIcon]> = [
   ['Actuals', Target],
   ['Reports', FileText],
 ];
-
-const CONFIDENCE_OPTIONS: AssumptionItem['confidence'][] = [
-  'Measured',
-  'Validated',
-  'Estimated',
-  'Proxy',
-  'Speculative',
-];
-const STATUS_OPTIONS: AssumptionItem['status'][] = ['Draft', 'Reviewed', 'Approved'];
 
 const CHART_COLORS = { benefits: '#2f7d5b', costs: '#c2410c', net: '#5f49d7', bar: '#5f49d7' };
 
@@ -129,9 +127,6 @@ function App() {
 
   const update = (key: keyof Inputs, value: string | number) =>
     setBase((current) => ({ ...current, [key]: value }));
-
-  const updateAssumption = (index: number, patch: Partial<AssumptionItem>) =>
-    setAssumptions((items) => items.map((item, i) => (i === index ? { ...item, ...patch } : item)));
 
   const benefitMix = Object.entries(r.benefitBreakdown).map(([key, value]) => ({
     name: getFormula(key)?.label ?? key,
@@ -663,64 +658,17 @@ function App() {
               <div className="panel-heading">
                 <div>
                   <h2>Assumption register</h2>
-                  <p>Trace material inputs to owners, evidence, and approval status.</p>
+                  <p>
+                    Trace material inputs to owners, evidence, and approval status. Every material
+                    figure should name its source.
+                  </p>
                 </div>
               </div>
-              <div className="table-wrap">
-                <table>
-                  <caption className="sr-only">Assumption register</caption>
-                  <thead>
-                    <tr>
-                      <th scope="col">Assumption</th>
-                      <th scope="col">Category</th>
-                      <th scope="col">Owner</th>
-                      <th scope="col">Source</th>
-                      <th scope="col">Confidence</th>
-                      <th scope="col">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {assumptions.map((a, i) => (
-                      <tr key={a.id}>
-                        <th scope="row">{a.name}</th>
-                        <td>{a.category}</td>
-                        <td>{a.owner}</td>
-                        <td>{a.source}</td>
-                        <td>
-                          <select
-                            aria-label={`Confidence for ${a.name}`}
-                            value={a.confidence}
-                            onChange={(e) =>
-                              updateAssumption(i, {
-                                confidence: e.target.value as AssumptionItem['confidence'],
-                              })
-                            }
-                          >
-                            {CONFIDENCE_OPTIONS.map((x) => (
-                              <option key={x}>{x}</option>
-                            ))}
-                          </select>
-                        </td>
-                        <td>
-                          <select
-                            aria-label={`Status for ${a.name}`}
-                            value={a.status}
-                            onChange={(e) =>
-                              updateAssumption(i, {
-                                status: e.target.value as AssumptionItem['status'],
-                              })
-                            }
-                          >
-                            {STATUS_OPTIONS.map((x) => (
-                              <option key={x}>{x}</option>
-                            ))}
-                          </select>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <AssumptionRegister
+                items={assumptions}
+                onChange={setAssumptions}
+                categories={[...assumptions.map((a) => a.category), BUILD_VS_BUY_CATEGORY]}
+              />
             </article>
           </section>
         )}

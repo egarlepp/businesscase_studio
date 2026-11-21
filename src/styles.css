@@ -756,3 +756,42 @@ tbody th {
   font-weight: 600;
   color: #172033;
 }
+
+/* Editable assumption register */
+.register td {
+  padding: 6px;
+  vertical-align: middle;
+}
+.cell-input {
+  width: 100%;
+  min-width: 130px;
+  border: 1px solid #dce1ea;
+  border-radius: 7px;
+  padding: 7px 8px;
+  background: #fafbfc;
+  color: #1d2638;
+  font-size: 13px;
+}
+.cell-input:focus {
+  border-color: #7c68e8;
+  outline: none;
+  box-shadow: 0 0 0 3px #7c68e815;
+}
+.icon-button {
+  border: 0;
+  background: transparent;
+  color: #5c6577;
+  padding: 6px;
+  border-radius: 7px;
+  cursor: pointer;
+  display: inline-grid;
+  place-items: center;
+}
+.icon-button:hover {
+  background: #fdecec;
+  color: #b42318;
+}
+.register + .secondary,
+.table-wrap + .secondary {
+  margin-top: 12px;
+}
