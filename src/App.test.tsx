@@ -11,6 +11,7 @@ const SECTIONS = [
   'Profile',
   'Benefits',
   'TCO',
+  'Build vs Buy',
   'AI Development',
   'Technical Health',
   'Scenarios',
@@ -179,5 +180,78 @@ describe('App', () => {
     expect(within(table).getByRole('rowheader', { name: 'Adoption rate' })).toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText(/Metric/), 'roi');
     expect(screen.getByRole('table', { name: /Sensitivity of ROI/ })).toBeInTheDocument();
+  });
+
+  it('compares build with buy and reacts to the scenario', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await goTo(user, 'Build vs Buy');
+    expect(screen.getByRole('heading', { name: /Too close to call/ })).toBeInTheDocument();
+    expect(screen.getByRole('table', { name: 'Build versus buy comparison' })).toBeInTheDocument();
+    const group = within(screen.getByRole('group', { name: 'Scenario' }));
+    await user.click(group.getByRole('button', { name: 'Upside' }));
+    expect(screen.getByRole('heading', { name: /Building is ahead/ })).toBeInTheDocument();
+    await user.click(group.getByRole('button', { name: 'Conservative' }));
+    expect(screen.getByRole('heading', { name: /Buying is ahead/ })).toBeInTheDocument();
+  });
+
+  it('tallies the non-financial checklist', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await goTo(user, 'Build vs Buy');
+    await user.selectOptions(screen.getByLabelText('Data ownership'), 'Favors build');
+    await user.selectOptions(screen.getByLabelText('Functional fit'), 'Favors buy');
+    expect(screen.getByText(/Non-financial factors/)).toHaveTextContent(
+      '1 favor build, 1 favor buy, 4 neutral',
+    );
+  });
+
+  it('adds a vendor assumption from the evidence panel', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await goTo(user, 'Build vs Buy');
+    await user.click(screen.getByRole('button', { name: 'Add vendor assumption' }));
+    expect(nav().getByRole('button', { name: 'Assumptions' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    const names = screen.getAllByLabelText(/^Assumption for assumption \d+$/);
+    expect(names.at(-1)).toHaveValue('Vendor quote');
+    expect(screen.getAllByLabelText(/^Category for assumption \d+$/).at(-1)).toHaveValue(
+      'Build vs buy',
+    );
+  });
+
+  it('adds, edits, and removes assumptions in the register', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await goTo(user, 'Assumptions');
+    const before = screen.getAllByLabelText(/^Assumption for assumption \d+$/).length;
+    await user.click(screen.getByRole('button', { name: 'Add assumption' }));
+    const name = screen.getByLabelText(`Assumption for assumption ${before + 1}`);
+    await user.type(name, 'Churn stays below 5%');
+    await user.type(screen.getByLabelText(`Source for assumption ${before + 1}`), 'CRM export');
+    expect(window.localStorage.getItem(STORAGE_KEY)).toContain('Churn stays below 5%');
+    await user.click(
+      screen.getByRole('button', { name: `Remove assumption ${before + 1}: Churn stays below 5%` }),
+    );
+    expect(screen.getAllByLabelText(/^Assumption for assumption \d+$/)).toHaveLength(before);
+  });
+
+  it('leaves the comparison unconfigured for a draft saved before build vs buy existed', async () => {
+    const legacyInputs: Record<string, unknown> = { ...defaultInputs };
+    for (const key of Object.keys(legacyInputs))
+      if (key.startsWith('buy') || key.startsWith('bvb')) delete legacyInputs[key];
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ schema: DRAFT_SCHEMA, version: DRAFT_VERSION, inputs: legacyInputs }),
+    );
+    const user = userEvent.setup();
+    render(<App />);
+    await goTo(user, 'Build vs Buy');
+    expect(
+      screen.getByRole('heading', { name: /Enter the commercial option/ }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('table', { name: 'Build versus buy comparison' })).toBeNull();
   });
 });

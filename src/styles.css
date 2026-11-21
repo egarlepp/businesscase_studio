@@ -795,3 +795,68 @@ tbody th {
 .table-wrap + .secondary {
   margin-top: 12px;
 }
+
+/* Build vs Buy */
+.verdict {
+  border-left: 5px solid #8b93a5;
+}
+.verdict-build {
+  border-left-color: #5f49d7;
+}
+.verdict-buy {
+  border-left-color: #c2410c;
+}
+.verdict-close {
+  border-left-color: #b7791f;
+}
+.verdict-head {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  position: relative;
+}
+.verdict-head > div {
+  flex: 1;
+}
+.verdict-head h2 {
+  font-size: 18px;
+  margin: 2px 0 6px;
+}
+.verdict-head p,
+.tally {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: #3d4558;
+}
+.verdict .formula-popover {
+  position: absolute;
+  right: 0;
+  top: 32px;
+  width: min(520px, 90vw);
+  z-index: 20;
+}
+.evidence-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.evidence-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  padding: 10px 12px;
+  border: 1px solid #edf0f5;
+  border-radius: 9px;
+}
+.evidence-list span {
+  color: #5c6577;
+}
+
+.register td:first-child .cell-input,
+.register td:nth-child(4) .cell-input {
+  min-width: 230px;
+}

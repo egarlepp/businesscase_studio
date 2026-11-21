@@ -18,6 +18,7 @@ import {
   RefreshCw,
   Scale,
   ShieldCheck,
+  ShoppingCart,
   Sparkles,
   Target,
   TrendingUp,
@@ -56,7 +57,10 @@ import {
   type DraftState,
 } from './persistence/draft';
 import type { AssumptionItem, Inputs, ScenarioName } from './types';
+import { blankAssumption } from './data/assumptions';
 import { AssumptionRegister } from './ui/components/AssumptionRegister';
+import { BuildVsBuyPanel } from './ui/components/BuildVsBuyPanel';
+import { buildVsBuyHeadline, checklistTally } from './ui/buildVsBuy';
 import { ChartTable } from './ui/components/ChartTable';
 import { Field } from './ui/components/Field';
 import { FormulaDetails, FormulaInfo } from './ui/components/FormulaInfo';
@@ -71,6 +75,7 @@ const SECTIONS: Array<[Section, LucideIcon]> = [
   ['Profile', BriefcaseBusiness],
   ['Benefits', Sparkles],
   ['TCO', CircleDollarSign],
+  ['Build vs Buy', ShoppingCart],
   ['AI Development', Bot],
   ['Technical Health', HeartPulse],
   ['Scenarios', Scale],
@@ -494,6 +499,22 @@ function App() {
           </>
         )}
 
+        {section === 'Build vs Buy' && (
+          <BuildVsBuyPanel
+            inputs={modeled}
+            results={r}
+            assumptions={assumptions}
+            fmt={fmt}
+            onAddEvidence={() => {
+              setAssumptions((items) => [
+                ...items,
+                { ...blankAssumption(BUILD_VS_BUY_CATEGORY), name: 'Vendor quote' },
+              ]);
+              setSection('Assumptions');
+            }}
+          />
+        )}
+
         {groups && (
           <section className="form-layout">
             {groups.map((g) => (
@@ -846,6 +867,18 @@ function App() {
               <h2>Guardrails</h2>
               {warningList}
             </article>
+            {r.buildVsBuy.configured && (
+              <article className="panel span-2">
+                <h2>Build versus buy</h2>
+                <p className="body-copy">
+                  {buildVsBuyHeadline(r.buildVsBuy, fmt)} Commercial TCO{' '}
+                  {fmt.money(r.buildVsBuy.buyTotalCost)} and NPV {fmt.money(r.buildVsBuy.buyNpv)}{' '}
+                  versus build TCO {fmt.money(r.totalCosts)} and NPV {fmt.money(r.npv)}.
+                  Non-financial factors: {checklistTally(modeled).build} favor build,{' '}
+                  {checklistTally(modeled).buy} favor buy.
+                </p>
+              </article>
+            )}
             <article className="panel span-2">
               <h2>Scenarios</h2>
               {scenarioTable}
