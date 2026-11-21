@@ -1,4 +1,11 @@
-import type { ActualsResults, Inputs, Results } from '../types';
+import type {
+  ActualsResults,
+  AnnualBreakdown,
+  BuildVsBuyRecommendation,
+  BuildVsBuyResults,
+  Inputs,
+  Results,
+} from '../types';
 const clamp = (v: number, min = 0, max = 1) => Math.min(Math.max(v, min), max);
 const positive = (v: number) => Math.max(v, 0);
 const formatPercent = (v: number) => `${Math.round(v * 1000) / 10}%`;
@@ -53,6 +60,96 @@ export function calculatePaybackMonths(p: PaybackParams): number | null {
     cumulative += net;
   }
   return null;
+}
+
+/** NPVs within this share of the larger TCO are reported as a close call. */
+export const CLOSE_CALL_SHARE = 0.05;
+
+interface BuildCase {
+  years: number;
+  annualBreakdown: AnnualBreakdown[];
+  totalCosts: number;
+  npv: number;
+}
+
+/**
+ * Compare the internal build with a commercial alternative over the same horizon and discount
+ * rate. The commercial product is credited with `buyBenefitFit` of the build's benefits in each
+ * year (recurring and one-time), and its recurring cost escalates at the vendor price growth rate.
+ */
+export function calculateBuildVsBuy(raw: Inputs, build: BuildCase): BuildVsBuyResults {
+  const fit = clamp(raw.buyBenefitFit);
+  const discount = positive(raw.discountRate);
+  const buyInitialCost =
+    positive(raw.buyImplementationCost) +
+    positive(raw.buyIntegrationCost) +
+    positive(raw.buyTrainingCost);
+  const buyAnnualCost =
+    positive(raw.buySubscriptionPerUserMonth) * 12 * positive(raw.buyLicensedUsers) +
+    positive(raw.buyAnnualPlatformFee) +
+    positive(raw.buyAnnualAdministration);
+  const configured = buyInitialCost > 0 || buyAnnualCost > 0;
+
+  let buyTotalCost = buyInitialCost,
+    buyTotalBenefits = 0,
+    buyNpv = -buyInitialCost;
+  const annual = build.annualBreakdown.slice(0, build.years).map((y, i) => {
+    const buyCost = buyAnnualCost * Math.pow(1 + raw.buyPriceGrowthRate, i);
+    const buyBenefits = y.benefits * fit;
+    buyTotalCost += buyCost;
+    buyTotalBenefits += buyBenefits;
+    buyNpv += (buyBenefits - buyCost) / Math.pow(1 + discount, y.year);
+    return {
+      year: y.year,
+      buildBenefits: y.benefits,
+      buildCost: y.costs,
+      buyBenefits,
+      buyCost,
+    };
+  });
+  const buyRoi = buyTotalCost > 0 ? (buyTotalBenefits - buyTotalCost) / buyTotalCost : 0;
+  const npvAdvantageOfBuild = build.npv - buyNpv;
+  const closeCallBand = CLOSE_CALL_SHARE * Math.max(build.totalCosts, buyTotalCost);
+  const recommendation: BuildVsBuyRecommendation = !configured
+    ? 'not-configured'
+    : Math.abs(npvAdvantageOfBuild) <= closeCallBand
+      ? 'close'
+      : npvAdvantageOfBuild > 0
+        ? 'build'
+        : 'buy';
+
+  const warnings: string[] = [];
+  if (configured) {
+    if (fit >= 1)
+      warnings.push(
+        'Commercial fit is 100%; an off-the-shelf product rarely delivers every benefit of a purpose-built tool.',
+      );
+    if (raw.buyPriceGrowthRate <= 0)
+      warnings.push('No vendor price escalation is modeled; renewals usually rise.');
+    if (positive(raw.buyLicensedUsers) === 0 && positive(raw.buySubscriptionPerUserMonth) > 0)
+      warnings.push('A per-user price is entered but licensed users is zero.');
+    if (recommendation === 'close')
+      warnings.push(
+        `The NPVs are within ${Math.round(CLOSE_CALL_SHARE * 100)}% of total cost; decide on the non-financial checklist and evidence quality.`,
+      );
+  }
+
+  return {
+    configured,
+    buyInitialCost,
+    buyAnnualCost,
+    buyTotalCost,
+    buyTotalBenefits,
+    buyNpv,
+    buyRoi,
+    buildTotalCost: build.totalCosts,
+    buildNpv: build.npv,
+    npvAdvantageOfBuild,
+    tcoDifference: buyTotalCost - build.totalCosts,
+    recommendation,
+    annual,
+    warnings,
+  };
 }
 
 /** Linear heuristic: 5% reserve at health 100, rising to 30% at health 0. Not a benchmark. */
@@ -285,6 +382,7 @@ export function calculateBusinessCase(raw: Inputs): Results {
       technicalDebt,
     },
     annualBreakdown,
+    buildVsBuy: calculateBuildVsBuy(raw, { years, annualBreakdown, totalCosts, npv }),
     warnings,
   };
 }

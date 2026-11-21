@@ -100,6 +100,32 @@ describe('draft export/import', () => {
     }
   });
 
+  it('leaves build vs buy unconfigured for drafts saved before v0.4.0', () => {
+    const legacyInputs: Record<string, unknown> = { ...defaultInputs };
+    for (const key of Object.keys(legacyInputs))
+      if (key.startsWith('buy') || key.startsWith('bvb')) delete legacyInputs[key];
+    const parsed = parseDraft({ schema: DRAFT_SCHEMA, version: 1, inputs: legacyInputs });
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) {
+      expect(parsed.state.inputs.buyImplementationCost).toBe(0);
+      expect(parsed.state.inputs.buySubscriptionPerUserMonth).toBe(0);
+      expect(parsed.state.inputs.buyBenefitFit).toBe(defaultInputs.buyBenefitFit);
+      const text = parsed.warnings.join(' ');
+      expect(text).toMatch(/predates the build-vs-buy comparison/);
+      expect(text).not.toMatch(/Filled missing fields/);
+    }
+  });
+
+  it('keeps build-vs-buy values from a current draft', () => {
+    const parsed = parseDraft({
+      schema: DRAFT_SCHEMA,
+      version: 1,
+      inputs: { ...defaultInputs, buyImplementationCost: 1234 },
+    });
+    expect(parsed.ok && parsed.state.inputs.buyImplementationCost).toBe(1234);
+    expect(parsed.ok && parsed.warnings).toEqual([]);
+  });
+
   it('normalizes an invalid currency to USD', () => {
     const parsed = parseDraft({ schema: DRAFT_SCHEMA, version: 1, inputs: { currency: 'XX' } });
     expect(parsed.ok && parsed.state.inputs.currency).toBe('USD');

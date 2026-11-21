@@ -5,6 +5,7 @@ export type Section =
   | 'Profile'
   | 'Benefits'
   | 'TCO'
+  | 'Build vs Buy'
   | 'AI Development'
   | 'Technical Health'
   | 'Scenarios'
@@ -12,7 +13,8 @@ export type Section =
   | 'Actuals'
   | 'Reports';
 
-export type FieldKind = 'text' | 'number' | 'money' | 'percent' | 'score' | 'currency';
+export type FieldKind =
+  'text' | 'number' | 'money' | 'percent' | 'score' | 'currency' | 'preference';
 
 export interface FieldDef {
   key: keyof Inputs;
@@ -148,6 +150,45 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
       ],
     },
   ],
+  'Build vs Buy': [
+    {
+      title: 'Commercial alternative: one-time',
+      description: 'Costs to stand up the product. Use a written quote, not a list price.',
+      fields: [
+        { key: 'buyImplementationCost', label: 'Implementation services', kind: 'money' },
+        { key: 'buyIntegrationCost', label: 'Integration and migration', kind: 'money' },
+        { key: 'buyTrainingCost', label: 'Training and change management', kind: 'money' },
+      ],
+    },
+    {
+      title: 'Commercial alternative: recurring',
+      description: 'Year-one subscription and running costs, escalated by vendor price growth.',
+      fields: [
+        {
+          key: 'buySubscriptionPerUserMonth',
+          label: 'Subscription per user per month',
+          kind: 'money',
+        },
+        { key: 'buyLicensedUsers', label: 'Licensed users' },
+        { key: 'buyAnnualPlatformFee', label: 'Annual platform fee', kind: 'money' },
+        { key: 'buyAnnualAdministration', label: 'Annual administration', kind: 'money' },
+        { key: 'buyPriceGrowthRate', label: 'Vendor price growth', kind: 'percent' },
+        { key: 'buyBenefitFit', label: 'Benefit fit (share of benefits)', kind: 'percent' },
+      ],
+    },
+    {
+      title: 'Non-financial considerations',
+      description: 'Judge each factor on its own; these are not converted into money.',
+      fields: [
+        { key: 'bvbFunctionalFit', label: 'Functional fit', kind: 'preference' },
+        { key: 'bvbExtensibility', label: 'Extensibility', kind: 'preference' },
+        { key: 'bvbDataOwnership', label: 'Data ownership', kind: 'preference' },
+        { key: 'bvbVendorLockIn', label: 'Vendor lock-in', kind: 'preference' },
+        { key: 'bvbExitCost', label: 'Exit cost', kind: 'preference' },
+        { key: 'bvbSecurity', label: 'Security and compliance', kind: 'preference' },
+      ],
+    },
+  ],
   'AI Development': [
     {
       title: 'Token economics',
@@ -240,6 +281,13 @@ for (const [section, groups] of Object.entries(FIELD_GROUPS) as [Section, FieldG
 export function fieldLocation(key: keyof Inputs): FieldLocation | undefined {
   return locations.get(key);
 }
+
+/** Values for 'preference' fields: which option a non-financial factor favors. */
+export const PREFERENCE_OPTIONS: { value: number; label: string }[] = [
+  { value: 1, label: 'Favors build' },
+  { value: 0, label: 'Neutral' },
+  { value: -1, label: 'Favors buy' },
+];
 
 export const SCORE_LABELS: Record<number, string> = {
   1: 'Strong',

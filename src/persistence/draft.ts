@@ -1,4 +1,10 @@
-import { defaultAssumptions, defaultInputs, SCENARIOS } from '../data/defaults';
+import {
+  BUILD_VS_BUY_KEYS,
+  BUY_COST_KEYS,
+  defaultAssumptions,
+  defaultInputs,
+  SCENARIOS,
+} from '../data/defaults';
 import { normalizeCurrency } from '../ui/format';
 import type { AssumptionItem, Confidence, Inputs, Results, ScenarioName } from '../types';
 
@@ -82,11 +88,22 @@ function parseInputs(raw: unknown, warnings: string[]): Inputs {
     warnings.push(`Unknown currency "${inputs.currency}"; using ${currency}.`);
   inputs.currency = currency;
 
+  // Migration: drafts saved before v0.4.0 have no build-vs-buy inputs. Leave the comparison
+  // unconfigured instead of silently applying the illustrative vendor figures.
+  const migrated = new Set<string>();
+  if (!BUILD_VS_BUY_KEYS.some((key) => key in raw)) {
+    for (const key of BUY_COST_KEYS) inputs[key] = 0;
+    BUILD_VS_BUY_KEYS.forEach((key) => migrated.add(key));
+    warnings.push(
+      'This draft predates the build-vs-buy comparison; enter vendor costs on the Build vs Buy page to use it.',
+    );
+  }
+
   const unknown = Object.keys(raw).filter((key) => !(key in defaultInputs));
   if (rejected.length)
     warnings.push(`Ignored invalid values for: ${rejected.join(', ')} (defaults kept).`);
   if (unknown.length) warnings.push(`Ignored unrecognized fields: ${unknown.join(', ')}.`);
-  const missing = Object.keys(defaultInputs).filter((key) => !(key in raw));
+  const missing = Object.keys(defaultInputs).filter((key) => !(key in raw) && !migrated.has(key));
   if (missing.length) warnings.push(`Filled missing fields with defaults: ${missing.join(', ')}.`);
   return inputs;
 }
