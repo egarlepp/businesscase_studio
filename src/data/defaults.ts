@@ -89,7 +89,50 @@ export const defaultInputs: Inputs = {
   actualAnnualRunCost: 76000,
   actualInitialCost: 92000,
   monthsSinceLaunch: 6,
+  // Illustrative commercial alternative: replace with a real vendor quote.
+  buySubscriptionPerUserMonth: 55,
+  buyLicensedUsers: 88,
+  buyAnnualPlatformFee: 12000,
+  buyAnnualAdministration: 15000,
+  buyImplementationCost: 40000,
+  buyIntegrationCost: 30000,
+  buyTrainingCost: 10000,
+  buyPriceGrowthRate: 0.07,
+  buyBenefitFit: 0.75,
+  bvbFunctionalFit: 0,
+  bvbExtensibility: 0,
+  bvbDataOwnership: 0,
+  bvbVendorLockIn: 0,
+  bvbExitCost: 0,
+  bvbSecurity: 0,
 };
+
+/** Commercial cost inputs; when all are zero the build-vs-buy comparison is not configured. */
+export const BUY_COST_KEYS = [
+  'buySubscriptionPerUserMonth',
+  'buyAnnualPlatformFee',
+  'buyAnnualAdministration',
+  'buyImplementationCost',
+  'buyIntegrationCost',
+  'buyTrainingCost',
+] as const satisfies readonly (keyof Inputs)[];
+
+/** Every input added for build versus buy (v0.4.0). Drafts saved earlier have none of them. */
+export const BUILD_VS_BUY_KEYS = [
+  ...BUY_COST_KEYS,
+  'buyLicensedUsers',
+  'buyPriceGrowthRate',
+  'buyBenefitFit',
+  'bvbFunctionalFit',
+  'bvbExtensibility',
+  'bvbDataOwnership',
+  'bvbVendorLockIn',
+  'bvbExitCost',
+  'bvbSecurity',
+] as const satisfies readonly (keyof Inputs)[];
+
+/** Assumption-register category that records evidence for the commercial alternative. */
+export const BUILD_VS_BUY_CATEGORY = 'Build vs buy';
 
 export const defaultAssumptions: AssumptionItem[] = [
   {
@@ -137,6 +180,15 @@ export const defaultAssumptions: AssumptionItem[] = [
     confidence: 'Estimated',
     status: 'Draft',
   },
+  {
+    id: 'a6',
+    name: 'Vendor pricing and 75% benefit fit',
+    category: BUILD_VS_BUY_CATEGORY,
+    owner: 'Procurement',
+    source: 'Illustrative; replace with a written vendor quote',
+    confidence: 'Speculative',
+    status: 'Draft',
+  },
 ];
 
 const scenarioMultipliers: Record<ScenarioName, Partial<Record<keyof Inputs, number>>> = {
@@ -175,6 +227,7 @@ export const RATE_KEYS = [
   'riskProbability',
   'riskReduction',
   'actualAdoptionRate',
+  'buyBenefitFit',
 ] as const satisfies readonly (keyof Inputs)[];
 
 export const SCENARIOS: readonly ScenarioName[] = ['Conservative', 'Expected', 'Upside'];

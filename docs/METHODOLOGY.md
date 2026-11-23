@@ -12,6 +12,7 @@ and the code disagree, the code is authoritative — please open an issue.
 - [Scenarios](#scenarios)
 - [Sensitivity analysis](#sensitivity-analysis)
 - [Actuals](#actuals)
+- [Build versus buy](#build-versus-buy)
 - [Model confidence and guardrails](#model-confidence-and-guardrails)
 - [Right-sizing the analysis](#right-sizing-the-analysis)
 - [Decision guidance](#decision-guidance)
@@ -219,6 +220,49 @@ Benefit realization       = actual annual benefits ÷ modeled recurring annual b
 
 Actual figures are held flat (no growth) for the run-rate ROI.
 
+## Build versus buy
+
+The Build vs Buy page compares the internal build with a commercial product over the same
+evaluation horizon and discount rate.
+
+```text
+Commercial one-time cost   = implementation + integration and migration + training
+Commercial recurring_t     = (per-user price × 12 × licensed users + platform fee + administration)
+                             × (1 + vendor price growth)^(t − 1)
+Commercial TCO             = one-time cost + Σ recurring_t
+Commercial benefits_t      = build benefits_t × benefit fit          (recurring and one-time)
+Commercial NPV             = −one-time cost + Σ (commercial benefits_t − recurring_t) ÷ (1 + discount rate)^t
+Commercial ROI             = (Σ commercial benefits_t − commercial TCO) ÷ commercial TCO
+NPV advantage of building  = build NPV − commercial NPV
+```
+
+**Benefit fit** is the share of the modeled benefits the product would actually deliver: how well
+its workflow, data, and integrations match the need. It is clamped to 0–100%. A fit of 100% is
+flagged, because an off-the-shelf product rarely delivers every benefit of a purpose-built tool.
+
+**Verdict:**
+
+| Condition                                            | Verdict           |
+| ---------------------------------------------------- | ----------------- |
+| Every commercial cost is zero                        | Not configured    |
+| \|NPV advantage\| ≤ 5% of the larger of the two TCOs | Too close to call |
+| NPV advantage > 0                                    | Build             |
+| NPV advantage < 0                                    | Buy               |
+
+**Non-financial checklist.** Functional fit, extensibility, data ownership, vendor lock-in, exit
+cost, and security and compliance are each marked as favoring build, neutral, or favoring buy. They
+are tallied, never converted into money, and matter most when the verdict is a close call.
+
+**Evidence.** Vendor figures are often the weakest inputs in the model. The page lists
+assumption-register rows in the category "Build vs buy" and warns when there are none, when one has
+no source, or when any is still Proxy/Speculative or in Draft.
+
+**Guardrails** on this page: 100% benefit fit, no vendor price escalation, a per-user price with
+zero licensed users, and a close-call verdict.
+
+Drafts saved before v0.4.0 have no vendor inputs; they open with the comparison not configured
+rather than borrowing the sample vendor figures.
+
 ## Model confidence and guardrails
 
 **Model confidence** is a heuristic (64–100%) that rises with adoption and realization
@@ -307,3 +351,6 @@ Approval questions:
 - **One-at-a-time sensitivity.** The tornado analysis does not capture interactions between
   drivers.
 - **Browser-only storage.** Models are saved in one browser; export drafts to move or share them.
+- **Same timing for both options.** Build vs buy assumes the commercial product starts delivering
+  benefits on the same schedule as the build; faster time to value for either option is not yet
+  modeled. The benefit fit is one blended percentage, not per benefit line.

@@ -1,4 +1,11 @@
-import { defaultAssumptions, defaultInputs, SCENARIOS } from '../data/defaults';
+import {
+  BUILD_VS_BUY_KEYS,
+  BUY_COST_KEYS,
+  defaultAssumptions,
+  defaultInputs,
+  SCENARIOS,
+} from '../data/defaults';
+import { ASSUMPTION_STATUSES, CONFIDENCE_LEVELS } from '../data/assumptions';
 import { normalizeCurrency } from '../ui/format';
 import type { AssumptionItem, Confidence, Inputs, Results, ScenarioName } from '../types';
 
@@ -9,15 +16,6 @@ export const STORAGE_KEY = 'business-case-studio:draft';
 
 const MAX_TEXT_LENGTH = 500;
 const MAX_ASSUMPTIONS = 500;
-const CONFIDENCE_LEVELS: readonly Confidence[] = [
-  'Measured',
-  'Validated',
-  'Estimated',
-  'Proxy',
-  'Speculative',
-];
-const STATUSES: readonly AssumptionItem['status'][] = ['Draft', 'Reviewed', 'Approved'];
-
 /** The editable state of a business case. Results are always recomputed, never restored. */
 export interface DraftState {
   inputs: Inputs;
@@ -82,11 +80,22 @@ function parseInputs(raw: unknown, warnings: string[]): Inputs {
     warnings.push(`Unknown currency "${inputs.currency}"; using ${currency}.`);
   inputs.currency = currency;
 
+  // Migration: drafts saved before v0.4.0 have no build-vs-buy inputs. Leave the comparison
+  // unconfigured instead of silently applying the illustrative vendor figures.
+  const migrated = new Set<string>();
+  if (!BUILD_VS_BUY_KEYS.some((key) => key in raw)) {
+    for (const key of BUY_COST_KEYS) inputs[key] = 0;
+    BUILD_VS_BUY_KEYS.forEach((key) => migrated.add(key));
+    warnings.push(
+      'This draft predates the build-vs-buy comparison; enter vendor costs on the Build vs Buy page to use it.',
+    );
+  }
+
   const unknown = Object.keys(raw).filter((key) => !(key in defaultInputs));
   if (rejected.length)
     warnings.push(`Ignored invalid values for: ${rejected.join(', ')} (defaults kept).`);
   if (unknown.length) warnings.push(`Ignored unrecognized fields: ${unknown.join(', ')}.`);
-  const missing = Object.keys(defaultInputs).filter((key) => !(key in raw));
+  const missing = Object.keys(defaultInputs).filter((key) => !(key in raw) && !migrated.has(key));
   if (missing.length) warnings.push(`Filled missing fields with defaults: ${missing.join(', ')}.`);
   return inputs;
 }
@@ -115,7 +124,7 @@ function parseAssumptions(raw: unknown, warnings: string[]): AssumptionItem[] {
       confidence: CONFIDENCE_LEVELS.includes(entry.confidence as Confidence)
         ? (entry.confidence as Confidence)
         : 'Estimated',
-      status: STATUSES.includes(entry.status as AssumptionItem['status'])
+      status: ASSUMPTION_STATUSES.includes(entry.status as AssumptionItem['status'])
         ? (entry.status as AssumptionItem['status'])
         : 'Draft',
     });

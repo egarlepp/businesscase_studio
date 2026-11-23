@@ -12,24 +12,25 @@ governance, and technical debt. On the other side, internal tools create value t
 ROI models miss: recovered capacity, avoided hiring, faster reporting, and reduced risk.
 Business Case Studio puts both sides in one transparent model.
 
-> **Status:** early MVP (v0.3.0). Runs entirely in the browser with no backend. Your model is
+> **Status:** early MVP (v0.4.0). Runs entirely in the browser with no backend. Your model is
 > autosaved in this browser only; export a draft to keep or share it. Default numbers are
 > illustrative — replace them with your own approved assumptions.
 
 ## Features
 
-| Section              | What it does                                                                                                                                                              |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Overview**         | ROI, TCO, NPV, payback, benefit-cost ratio with "how is this calculated" explanations; cumulative value chart, benefit mix, model confidence, and guardrail warnings      |
-| **Profile**          | Initiative name, sponsor, currency, horizon, discount rate, growth rates, user segments, and loaded labor rates                                                           |
-| **Benefits**         | Productivity, management, reconciliation, recovered capacity, contractor avoidance, one-time deferred hiring, revenue influence, opportunity coverage, and risk reduction |
-| **TCO**              | Build labor (discovery through launch), run platform, support, maintenance, enhancements, governance, security, training, and a technical-debt reserve                    |
-| **AI Development**   | Token economics, subscriptions, human oversight hours, traditional-build comparison, and time-to-market value                                                             |
-| **Technical Health** | Ten-dimension maintainability score that drives a risk rating and a suggested technical-debt reserve                                                                      |
-| **Scenarios**        | Conservative / Expected / Upside comparison and a tornado sensitivity analysis (NPV or ROI, ±10–30%)                                                                      |
-| **Assumptions**      | Register with owner, source, confidence, and approval status                                                                                                              |
-| **Actuals**          | Forecast-versus-actual variance, initial-investment variance, payback progress, and ROI at the actual run rate                                                            |
-| **Reports**          | Executive summary, key metrics, calculation trace, export/import drafts (JSON), cash-flow CSV, and print / Save as PDF                                                    |
+| Section              | What it does                                                                                                                                                                            |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Overview**         | ROI, TCO, NPV, payback, benefit-cost ratio with "how is this calculated" explanations; cumulative value chart, benefit mix, model confidence, and guardrail warnings                    |
+| **Profile**          | Initiative name, sponsor, currency, horizon, discount rate, growth rates, user segments, and loaded labor rates                                                                         |
+| **Benefits**         | Productivity, management, reconciliation, recovered capacity, contractor avoidance, one-time deferred hiring, revenue influence, opportunity coverage, and risk reduction               |
+| **TCO**              | Build labor (discovery through launch), run platform, support, maintenance, enhancements, governance, security, training, and a technical-debt reserve                                  |
+| **Build vs Buy**     | Commercial-alternative TCO, NPV and ROI on the same horizon and discount rate, benefit-fit adjustment, build/buy/close-call verdict, non-financial checklist, and vendor-evidence check |
+| **AI Development**   | Token economics, subscriptions, human oversight hours, traditional-build comparison, and time-to-market value                                                                           |
+| **Technical Health** | Ten-dimension maintainability score that drives a risk rating and a suggested technical-debt reserve                                                                                    |
+| **Scenarios**        | Conservative / Expected / Upside comparison and a tornado sensitivity analysis (NPV or ROI, ±10–30%)                                                                                    |
+| **Assumptions**      | Editable register: add, edit, and remove assumptions with owner, source, confidence, and approval status                                                                                |
+| **Actuals**          | Forecast-versus-actual variance, initial-investment variance, payback progress, and ROI at the actual run rate                                                                          |
+| **Reports**          | Executive summary, key metrics, build-vs-buy summary, calculation trace, export/import drafts (JSON), cash-flow CSV, and print / Save as PDF                                            |
 
 The formulas, scoring rubric, and decision guidance are documented in
 [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
@@ -69,12 +70,15 @@ src/
   calculations/engine.ts        Pure calculation engine (all formulas live here)
   calculations/formulas.ts      Formula registry behind the in-app explanations
   calculations/sensitivity.ts   Tornado (one-at-a-time) sensitivity analysis
+  data/assumptions.ts           Assumption-register helpers and evidence checks
   data/defaults.ts              Sample inputs, assumptions, scenario multipliers
   persistence/draft.ts          Versioned draft format, import validation, autosave
   export/csv.ts                 Cash-flow CSV export
   ui/fields.ts                  Every input's label and page location
   ui/format.ts                  Currency-aware formatting
-  ui/components/                Field, FormulaInfo, SensitivityPanel, ChartTable
+  ui/buildVsBuy.ts              Build-vs-buy headline, checklist tally, chart series
+  ui/components/                Field, FormulaInfo, SensitivityPanel, BuildVsBuyPanel,
+                                AssumptionRegister, ChartTable
   types/index.ts                Input and result types
 docs/METHODOLOGY.md             Formulas and decision guidance
 ```
@@ -98,16 +102,15 @@ are a good place to start contributing.
 
 **Now**
 
-- [#17](https://github.com/egarlepp/businesscase_studio/issues/17) Build-versus-buy comparison
+- [#18](https://github.com/egarlepp/businesscase_studio/issues/18) Team-specific benefit breakouts (drafts are versioned, so saved models can be
+  migrated)
 
 **Next**
 
-- [#18](https://github.com/egarlepp/businesscase_studio/issues/18) Team-specific benefit breakouts (unblocked: drafts are now versioned, so saved
-  models can be migrated)
-
-**Later**
-
 - [#19](https://github.com/egarlepp/businesscase_studio/issues/19) Guided setup
+
+**Done in v0.4.0**: build-versus-buy comparison and an editable assumption register
+([#17](https://github.com/egarlepp/businesscase_studio/issues/17)).
 
 **Done in v0.3.0**: drafts and import ([#6](https://github.com/egarlepp/businesscase_studio/issues/6)), formula explanations ([#7](https://github.com/egarlepp/businesscase_studio/issues/7)), tornado
 analysis ([#8](https://github.com/egarlepp/businesscase_studio/issues/8)), currency ([#9](https://github.com/egarlepp/businesscase_studio/issues/9)), print and CSV ([#10](https://github.com/egarlepp/businesscase_studio/issues/10)), payback with growth

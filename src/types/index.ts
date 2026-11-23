@@ -90,6 +90,24 @@ export interface Inputs {
   actualAnnualRunCost: number;
   actualInitialCost: number;
   monthsSinceLaunch: number;
+  // Build versus buy: the commercial alternative
+  buySubscriptionPerUserMonth: number;
+  buyLicensedUsers: number;
+  buyAnnualPlatformFee: number;
+  buyAnnualAdministration: number;
+  buyImplementationCost: number;
+  buyIntegrationCost: number;
+  buyTrainingCost: number;
+  buyPriceGrowthRate: number;
+  /** Share of the modeled benefits the commercial product would deliver (0–1). */
+  buyBenefitFit: number;
+  // Non-financial checklist: 1 favors build, 0 neutral, -1 favors buy
+  bvbFunctionalFit: number;
+  bvbExtensibility: number;
+  bvbDataOwnership: number;
+  bvbVendorLockIn: number;
+  bvbExitCost: number;
+  bvbSecurity: number;
 }
 
 export interface AnnualBreakdown {
@@ -158,6 +176,39 @@ export interface Results {
   oneTimeBenefitBreakdown: OneTimeBenefitBreakdown;
   costBreakdown: CostBreakdown;
   annualBreakdown: AnnualBreakdown[];
+  buildVsBuy: BuildVsBuyResults;
+  warnings: string[];
+}
+
+export type BuildVsBuyRecommendation = 'build' | 'buy' | 'close' | 'not-configured';
+
+export interface BuildVsBuyYear {
+  year: number;
+  buildBenefits: number;
+  buildCost: number;
+  buyBenefits: number;
+  buyCost: number;
+}
+
+export interface BuildVsBuyResults {
+  /** False when every commercial cost input is zero. */
+  configured: boolean;
+  buyInitialCost: number;
+  /** Year-one recurring commercial cost. */
+  buyAnnualCost: number;
+  /** Initial plus recurring commercial cost over the horizon. */
+  buyTotalCost: number;
+  buyTotalBenefits: number;
+  buyNpv: number;
+  buyRoi: number;
+  buildTotalCost: number;
+  buildNpv: number;
+  /** Build NPV − buy NPV; positive favors building. */
+  npvAdvantageOfBuild: number;
+  /** Buy TCO − build TCO; positive means buying costs more. */
+  tcoDifference: number;
+  recommendation: BuildVsBuyRecommendation;
+  annual: BuildVsBuyYear[];
   warnings: string[];
 }
 

@@ -1,6 +1,6 @@
 import type { Inputs } from '../../types';
 import type { FieldDef } from '../fields';
-import { SCORE_LABELS } from '../fields';
+import { PREFERENCE_OPTIONS, SCORE_LABELS } from '../fields';
 import { SUPPORTED_CURRENCIES, type Formatters } from '../format';
 
 interface FieldProps {
@@ -53,6 +53,21 @@ function FieldControl({ id, def, value, fmt, onChange }: FieldProps & { id: stri
         </select>
       );
     }
+    case 'preference':
+      return (
+        <select
+          id={id}
+          className="input"
+          value={Math.sign(Number(value))}
+          onChange={(e) => onChange(def.key, Number(e.target.value))}
+        >
+          {PREFERENCE_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      );
     case 'score':
       return (
         <select
