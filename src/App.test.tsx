@@ -3,9 +3,11 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
+import { CHANGELOG, LAST_SEEN_VERSION_KEY } from './data/changelog';
 import { defaultInputs } from './data/defaults';
 import { DRAFT_SCHEMA, DRAFT_VERSION, saveStoredDraft, STORAGE_KEY } from './persistence/draft';
 import { sampleDraft, saveWorkspacePrefs, WORKSPACE_KEY } from './workspace/workspace';
+import { APP_VERSION } from './version';
 
 const SECTIONS = [
   'Overview',
@@ -264,6 +266,42 @@ describe('App', () => {
       screen.getByRole('heading', { name: /Enter the commercial option/ }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('table', { name: 'Build versus buy comparison' })).toBeNull();
+  });
+
+  it('opens release notes from the version badge and remembers they were seen', async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<App />);
+    const badge = screen.getByRole('button', { name: /^Version .*new updates\. Show what's new$/ });
+    expect(badge).toHaveTextContent(`v${APP_VERSION}`);
+    await user.click(badge);
+    const dialog = screen.getByRole('dialog', { name: /^What.s new$/ });
+    expect(
+      within(dialog).getByRole('region', { name: `Version ${APP_VERSION}` }),
+    ).toBeInTheDocument();
+    expect(within(dialog).getAllByRole('region').length).toBe(CHANGELOG.length);
+    expect(within(dialog).getByRole('button', { name: "Close what's new" })).toHaveFocus();
+    expect(window.localStorage.getItem(LAST_SEEN_VERSION_KEY)).toBe(APP_VERSION);
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(
+      screen.getByRole('button', { name: `Version ${APP_VERSION}. Show what's new` }),
+    ).toBeInTheDocument();
+    unmount();
+
+    render(<App />);
+    expect(screen.queryByRole('button', { name: /new updates/ })).toBeNull();
+  });
+
+  it('opens release notes from the footer version and closes with the close button', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const footer = screen.getByRole('contentinfo');
+    await user.click(
+      within(footer).getByRole('button', { name: `Release notes for version ${APP_VERSION}` }),
+    );
+    await user.click(screen.getByRole('button', { name: "Close what's new" }));
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
 

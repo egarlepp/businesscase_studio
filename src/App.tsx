@@ -42,7 +42,7 @@ import { calculateActuals, calculateBusinessCase } from './calculations/engine';
 import { FORMULAS, getFormula } from './calculations/formulas';
 import { applyScenario, BUILD_VS_BUY_CATEGORY, SCENARIOS } from './data/defaults';
 import { buildCashFlowCsv, downloadFile, fileSlug } from './export/csv';
-import { createDraftFile, parseDraftText } from './persistence/draft';
+import { createDraftFile, getBrowserStorage, parseDraftText } from './persistence/draft';
 import type { Inputs } from './types';
 import { blankAssumption } from './data/assumptions';
 import { AssumptionRegister } from './ui/components/AssumptionRegister';
@@ -55,6 +55,8 @@ import { SensitivityPanel } from './ui/components/SensitivityPanel';
 import { formatFormulaValue } from './ui/display';
 import { FIELD_GROUPS, type Section } from './ui/fields';
 import { createFormatters } from './ui/format';
+import { WhatsNewDialog } from './ui/components/WhatsNewDialog';
+import { CHANGELOG, readLastSeenVersion, writeLastSeenVersion } from './data/changelog';
 import { APP_VERSION } from './version';
 import {
   DemoBanner,
@@ -101,6 +103,15 @@ function App() {
   const [section, setSection] = useState<Section>('Overview');
   const caseName = base.applicationName.trim() || UNTITLED;
   const [importStatus, setImportStatus] = useState<ImportStatus>(null);
+  const [whatsNewOpen, setWhatsNewOpen] = useState(false);
+  const [hasUnseenRelease, setHasUnseenRelease] = useState(
+    () => readLastSeenVersion(getBrowserStorage()) !== APP_VERSION,
+  );
+  const openWhatsNew = () => {
+    setWhatsNewOpen(true);
+    setHasUnseenRelease(false);
+    writeLastSeenVersion(getBrowserStorage(), APP_VERSION);
+  };
   const fileInput = useRef<HTMLInputElement>(null);
 
   const fmt = useMemo(() => createFormatters(base.currency), [base.currency]);
@@ -273,7 +284,18 @@ function App() {
             </div>
             <div>
               <strong>Business Case</strong>
-              <span>Studio</span>
+              <span className="brand-sub">
+                Studio
+                <button
+                  type="button"
+                  className={hasUnseenRelease ? 'version-pill unseen' : 'version-pill'}
+                  aria-label={`Version ${APP_VERSION}${hasUnseenRelease ? ', new updates' : ''}. Show what's new`}
+                  title="What's new"
+                  onClick={openWhatsNew}
+                >
+                  v{APP_VERSION}
+                </button>
+              </span>
             </div>
           </div>
           <nav aria-label="Sections">
@@ -965,9 +987,27 @@ function App() {
             </section>
           )}
           <footer className="app-footer no-print">
-            <Calculator size={14} /> Business Case Studio v{APP_VERSION}. Inputs are saved only in
-            this browser.
+            <Calculator size={14} />
+            <span>
+              Business Case Studio{' '}
+              <button
+                type="button"
+                className="link-button"
+                aria-label={`Release notes for version ${APP_VERSION}`}
+                onClick={openWhatsNew}
+              >
+                v{APP_VERSION}
+              </button>
+              . Inputs are saved only in this browser.
+            </span>
           </footer>
+          {whatsNewOpen && (
+            <WhatsNewDialog
+              releases={CHANGELOG}
+              currentVersion={APP_VERSION}
+              onClose={() => setWhatsNewOpen(false)}
+            />
+          )}
         </main>
         {workspace.needsChoice && <WelcomeDialog />}
       </div>
