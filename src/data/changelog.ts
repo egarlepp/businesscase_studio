@@ -16,6 +16,15 @@ export interface Release {
 
 export const CHANGELOG: readonly Release[] = [
   {
+    version: '0.8.2',
+    date: '2026-11-27',
+    title: 'Clear data restarts the walkthrough',
+    changes: [
+      'Clear data now also resets the guided walkthrough: its setup answers and step progress are cleared, so the guide starts again from the setup questions.',
+      'The walkthrough setup explains that questions 2, 4, 5 and 6 are the same as Scope on the Profile page.',
+    ],
+  },
+  {
     version: '0.8.1',
     date: '2026-11-27',
     title: 'Tidier Scope questions',
