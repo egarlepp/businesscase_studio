@@ -1,4 +1,5 @@
 import { Presentation } from 'lucide-react';
+import { PanelTitle } from './PanelTitle';
 import { getFormula } from '../../calculations/formulas';
 import type { Audience } from '../../guide/audiences';
 import type { Results, ScenarioName } from '../../types';
@@ -25,9 +26,7 @@ export function AudienceBriefing({
     <article className="panel span-2 briefing" aria-label="Audience briefing">
       <div className="panel-heading">
         <div>
-          <h2>
-            <Presentation size={20} /> Audience briefing: {audience.title}
-          </h2>
+          <PanelTitle icon={Presentation}>Audience briefing: {audience.title}</PanelTitle>
           <p>{audience.decision}</p>
         </div>
         <button type="button" className="secondary no-print" onClick={onChangeAudience}>

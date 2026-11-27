@@ -23,6 +23,17 @@ export const RECENT_RELEASES_SHOWN = 2;
 
 export const CHANGELOG: readonly Release[] = [
   {
+    version: '0.9.0',
+    date: '2026-11-27',
+    title: 'Dark mode and a tidier header',
+    changes: [
+      'Dark mode: the sun, moon, and monitor buttons at the bottom of the sidebar switch between light, dark, and your system setting (the default). Every page and chart follows the theme, and printing stays light.',
+      'The Demo data switch moved to the same row in the sidebar, as a flask button at the far right.',
+      'Save file, Open file, and Clear data are now icon buttons at the right of the header. Hover or focus one to see what it does; Clear data still asks before erasing anything.',
+      'Conservative, Expected, and Upside have icons, and every card on every page now has an icon beside its title.',
+    ],
+  },
+  {
     version: '0.8.3',
     date: '2026-11-27',
     title: 'Shorter release notes',
@@ -59,14 +70,6 @@ export const CHANGELOG: readonly Release[] = [
       'Scope suggests the value types that fit the application, with one-click claiming, and marks them "Fits this app" on the Benefits page.',
       'New guardrails catch costs the scope makes essential but are still zero, such as production AI with no runtime cost or personal data with no security spend.',
       'Reports add a Scope section listing what was left out and why.',
-    ],
-  },
-  {
-    version: '0.7.1',
-    date: '2026-11-27',
-    title: 'Page no longer scrolls past the end',
-    changes: [
-      'Pages with charts, such as Overview, no longer scroll into a blank area below the content, and the sidebar now reaches the bottom of the window.',
     ],
   },
 ];

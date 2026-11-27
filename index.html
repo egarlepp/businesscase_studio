@@ -12,6 +12,21 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#111a2e" />
     <title>Business Case Studio</title>
+    <script>
+      // Set the theme before first paint so a dark-mode user never sees a white flash.
+      // Mirrors src/theme/theme.ts: a saved light/dark choice wins, else the system setting.
+      (function () {
+        var theme;
+        try {
+          theme = localStorage.getItem('business-case-studio:theme');
+        } catch (e) {}
+        if (theme !== 'light' && theme !== 'dark') {
+          theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

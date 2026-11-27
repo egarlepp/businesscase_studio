@@ -1,4 +1,5 @@
 import { Layers, PackageX } from 'lucide-react';
+import { PanelTitle } from './PanelTitle';
 import {
   SCOPE_QUESTIONS,
   TIER_LABELS,
@@ -29,9 +30,9 @@ export function ScopePanel({ inputs, onChange }: { inputs: Inputs; onChange: OnC
     <article className="panel span-2 scope-panel" aria-labelledby="scope-title">
       <div className="panel-heading">
         <div>
-          <h2 id="scope-title">
-            <Layers size={19} aria-hidden="true" /> Scope
-          </h2>
+          <PanelTitle id="scope-title" icon={Layers}>
+            Scope
+          </PanelTitle>
           <p>
             Describe the application. The answers mark each optional page as essential, optional, or
             not applicable, and suggest value types. Turning a page off keeps its inputs, and any
@@ -207,7 +208,7 @@ export function ScopeReport({ inputs }: { inputs: Inputs }) {
   const missedSuggestions = suggestClaims(inputs).filter((s) => !isClaimed(inputs, s.id));
   return (
     <article className="panel span-2" aria-label="Scope">
-      <h2>Scope</h2>
+      <PanelTitle icon={Layers}>Scope</PanelTitle>
       <dl className="score-list compact">
         {answered.map((q) => (
           <div key={q.key}>

@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import {
   AlertTriangle,
+  ArrowLeftRight,
+  BadgeCheck,
+  ChartArea,
+  ShieldAlert,
+  Sigma,
+  Wrench,
   BarChart3,
   Bot,
   BriefcaseBusiness,
@@ -47,9 +53,11 @@ import { FORMULAS, getFormula } from './calculations/formulas';
 import { applyScenario, BUILD_VS_BUY_CATEGORY, SCENARIOS } from './data/defaults';
 import { buildCashFlowCsv, downloadFile, fileSlug } from './export/csv';
 import { createDraftFile, getBrowserStorage, parseDraftText } from './persistence/draft';
-import type { Inputs } from './types';
+import type { Inputs, ScenarioName } from './types';
 import { blankAssumption } from './data/assumptions';
 import { CaseTitle } from './ui/components/CaseTitle';
+import { useChartColors } from './theme/theme';
+import { PanelTitle } from './ui/components/PanelTitle';
 import { AssumptionRegister } from './ui/components/AssumptionRegister';
 import { BuildVsBuyPanel } from './ui/components/BuildVsBuyPanel';
 import { buildVsBuyHeadline, checklistTally } from './ui/buildVsBuy';
@@ -60,6 +68,7 @@ import { SensitivityPanel } from './ui/components/SensitivityPanel';
 import { formatFormulaValue } from './ui/display';
 import { FIELD_GROUPS, type Section } from './ui/fields';
 import { createFormatters } from './ui/format';
+import { ThemeToggle } from './ui/components/ThemeToggle';
 import { WhatsNewDialog } from './ui/components/WhatsNewDialog';
 import { CHANGELOG, readLastSeenVersion, writeLastSeenVersion } from './data/changelog';
 import { APP_VERSION } from './version';
@@ -83,6 +92,17 @@ import {
 } from './ui/components/Workspace';
 import { useWorkspaceState, WorkspaceProvider } from './workspace/useWorkspace';
 
+const SCENARIO_ICONS: Record<ScenarioName, LucideIcon> = {
+  Conservative: ShieldCheck,
+  Expected: Target,
+  Upside: TrendingUp,
+};
+
+function ScenarioIcon({ scenario }: { scenario: ScenarioName }) {
+  const Icon = SCENARIO_ICONS[scenario];
+  return <Icon size={15} aria-hidden="true" />;
+}
+
 const SECTIONS: Array<[Section, LucideIcon]> = [
   ['Overview', BarChart3],
   ['Profile', BriefcaseBusiness],
@@ -100,8 +120,6 @@ const SECTIONS: Array<[Section, LucideIcon]> = [
 /** Browser preference: hide pages marked not applicable from the navigation. */
 const HIDE_OFF_PAGES_KEY = 'business-case-studio:hide-off-pages';
 
-const CHART_COLORS = { benefits: '#2f7d5b', costs: '#c2410c', net: '#5f49d7', bar: '#5f49d7' };
-
 /** Heading and report name for a case that has not been named yet. */
 const UNTITLED = 'Untitled business case';
 const NO_VALUE = '—';
@@ -110,6 +128,7 @@ type ImportStatus = { kind: 'success' | 'error'; message: string; details: strin
 
 function App() {
   const workspace = useWorkspaceState();
+  const CHART_COLORS = useChartColors();
   const {
     inputs: base,
     setInputs: setBase,
@@ -289,6 +308,32 @@ function App() {
     });
   };
 
+  const fileActions: Array<{
+    label: string;
+    detail: string;
+    icon: LucideIcon;
+    onClick: () => void;
+  }> = [
+    {
+      label: 'Save file',
+      detail: 'Download this business case as a JSON file you can open later.',
+      icon: Save,
+      onClick: exportDraft,
+    },
+    {
+      label: 'Open file',
+      detail: 'Open a business case JSON file saved earlier.',
+      icon: FolderOpen,
+      onClick: () => fileInput.current?.click(),
+    },
+    {
+      label: 'Clear data',
+      detail: 'Erase every figure, name, and assumption. You are asked to confirm first.',
+      icon: Eraser,
+      onClick: clearAllData,
+    },
+  ];
+
   const importStatusBanner = importStatus && (
     <div className={importStatus.kind === 'error' ? 'warning' : 'success'}>
       {importStatus.kind === 'error' ? <AlertTriangle size={17} /> : <CheckCircle2 size={17} />}
@@ -466,6 +511,10 @@ function App() {
               </button>
             )}
           </nav>
+          <div className="sidebar-tools">
+            <ThemeToggle />
+            <DemoToggle />
+          </div>
           <HintTooltip
             placement="top"
             className="sidebar-note-anchor"
@@ -551,6 +600,7 @@ function App() {
                           aria-describedby={describedBy}
                           onClick={() => setScenario(x)}
                         >
+                          <ScenarioIcon scenario={x} />
                           {x}
                         </button>
                       )}
@@ -567,25 +617,39 @@ function App() {
                 <Compass size={16} />
                 Guide
               </button>
-              <DemoToggle />
-              <button
-                type="button"
-                className="reset"
-                title="Download this business case as a JSON file you can open later"
-                onClick={exportDraft}
-              >
-                <Save size={16} />
-                Save file
-              </button>
-              <button
-                type="button"
-                className="reset"
-                title="Open a business case JSON file saved earlier"
-                onClick={() => fileInput.current?.click()}
-              >
-                <FolderOpen size={16} />
-                Open file
-              </button>
+              <span className="save-state" role="status">
+                {!canPersist
+                  ? 'Not saved: browser storage unavailable'
+                  : demoMode
+                    ? 'Demo data: changes are not saved'
+                    : 'Saved in this browser'}
+              </span>
+              <div className="file-actions" role="group" aria-label="Case file">
+                {fileActions.map(({ label, detail, icon: Icon, onClick }) => (
+                  <HintTooltip
+                    key={label}
+                    className="file-action-anchor"
+                    content={
+                      <>
+                        <strong>{label}</strong>
+                        <span>{detail}</span>
+                      </>
+                    }
+                  >
+                    {(describedBy) => (
+                      <button
+                        type="button"
+                        className="reset icon-only"
+                        aria-label={label}
+                        aria-describedby={describedBy}
+                        onClick={onClick}
+                      >
+                        <Icon size={17} aria-hidden="true" />
+                      </button>
+                    )}
+                  </HintTooltip>
+                ))}
+              </div>
               <input
                 ref={fileInput}
                 type="file"
@@ -595,17 +659,6 @@ function App() {
                 aria-label="Open business case file"
                 onChange={importDraft}
               />
-              <button type="button" className="reset" onClick={clearAllData}>
-                <Eraser size={16} />
-                Clear data
-              </button>
-              <span className="save-state" role="status">
-                {!canPersist
-                  ? 'Not saved: browser storage unavailable'
-                  : demoMode
-                    ? 'Demo data: changes are not saved'
-                    : 'Saved in this browser'}
-              </span>
             </div>
           </header>
 
@@ -661,7 +714,7 @@ function App() {
                     <article className="panel chart-panel">
                       <div className="panel-heading">
                         <div>
-                          <h2>Cumulative business value</h2>
+                          <PanelTitle icon={ChartArea}>Cumulative business value</PanelTitle>
                           <p>Annual modeled benefits and ownership costs.</p>
                         </div>
                       </div>
@@ -717,7 +770,7 @@ function App() {
                     <article className="panel">
                       <div className="panel-heading">
                         <div>
-                          <h2>Business-case quality</h2>
+                          <PanelTitle icon={BadgeCheck}>Business-case quality</PanelTitle>
                           <p>Decision-readiness indicators.</p>
                         </div>
                       </div>
@@ -757,7 +810,7 @@ function App() {
                     <article className="panel">
                       <div className="panel-heading">
                         <div>
-                          <h2>Recurring annual benefit mix</h2>
+                          <PanelTitle icon={BarChart3}>Recurring annual benefit mix</PanelTitle>
                           <p>
                             Year-one recurring value. One-time hiring deferral is shown separately.
                           </p>
@@ -788,7 +841,7 @@ function App() {
                     <article className="panel">
                       <div className="panel-heading">
                         <div>
-                          <h2>Guardrails</h2>
+                          <PanelTitle icon={ShieldAlert}>Guardrails</PanelTitle>
                           <p>Items requiring evidence or review.</p>
                         </div>
                       </div>
@@ -833,7 +886,7 @@ function App() {
                 <article className="panel form-panel" key={g.title}>
                   <div className="panel-heading">
                     <div>
-                      <h2>{g.title}</h2>
+                      <PanelTitle icon={g.icon}>{g.title}</PanelTitle>
                       <p>{g.description}</p>
                     </div>
                   </div>
@@ -901,7 +954,7 @@ function App() {
               <article className="panel">
                 <div className="panel-heading">
                   <div>
-                    <h2>Suggested technical-debt reserve</h2>
+                    <PanelTitle icon={Wrench}>Suggested technical-debt reserve</PanelTitle>
                     <p>A heuristic from the health score: 5% at best health, 30% at worst.</p>
                   </div>
                 </div>
@@ -945,7 +998,7 @@ function App() {
               <article className="panel">
                 <div className="panel-heading">
                   <div>
-                    <h2>Scenario comparison</h2>
+                    <PanelTitle icon={Scale}>Scenario comparison</PanelTitle>
                     <p>
                       Compare value under different adoption, revenue, and maintenance assumptions.
                     </p>
@@ -956,7 +1009,7 @@ function App() {
               <article className="panel">
                 <div className="panel-heading">
                   <div>
-                    <h2>Scenario ROI</h2>
+                    <PanelTitle icon={BarChart3}>Scenario ROI</PanelTitle>
                     <p>ROI across the standard cases.</p>
                   </div>
                 </div>
@@ -991,7 +1044,7 @@ function App() {
               <article className="panel span-2">
                 <div className="panel-heading">
                   <div>
-                    <h2>Assumption register</h2>
+                    <PanelTitle icon={ClipboardList}>Assumption register</PanelTitle>
                     <p>
                       Trace material inputs to owners, evidence, and approval status. Every material
                       figure should name its source.
@@ -1012,7 +1065,7 @@ function App() {
               <article className="panel">
                 <div className="panel-heading">
                   <div>
-                    <h2>Forecast versus actual</h2>
+                    <PanelTitle icon={ArrowLeftRight}>Forecast versus actual</PanelTitle>
                     <p>Annualized realization against the {scenario} scenario.</p>
                   </div>
                 </div>
@@ -1047,7 +1100,7 @@ function App() {
               <article className="panel">
                 <div className="panel-heading">
                   <div>
-                    <h2>Realization health</h2>
+                    <PanelTitle icon={TrendingUp}>Realization health</PanelTitle>
                     <p>How much of the modeled value is being captured.</p>
                   </div>
                 </div>
@@ -1146,7 +1199,7 @@ function App() {
               )}
               <ScopeReport inputs={base} />
               <article className="panel">
-                <h2>Key metrics</h2>
+                <PanelTitle icon={Sigma}>Key metrics</PanelTitle>
                 <dl className="score-list">
                   {[
                     'totalBenefits',
@@ -1169,13 +1222,13 @@ function App() {
                 </dl>
               </article>
               <article className="panel">
-                <h2>Guardrails</h2>
+                <PanelTitle icon={ShieldAlert}>Guardrails</PanelTitle>
                 {warningList}
               </article>
               <ClaimsReport inputs={modeled} results={r} review={claimReview} fmt={fmt} />
               {r.buildVsBuy.configured && !isSectionOff(base, 'Build vs Buy') && (
                 <article className="panel span-2">
-                  <h2>Build versus buy</h2>
+                  <PanelTitle icon={ShoppingCart}>Build versus buy</PanelTitle>
                   <p className="body-copy">
                     {buildVsBuyHeadline(r.buildVsBuy, fmt)} Commercial TCO{' '}
                     {fmt.money(r.buildVsBuy.buyTotalCost)} and NPV {fmt.money(r.buildVsBuy.buyNpv)}{' '}
@@ -1186,11 +1239,11 @@ function App() {
                 </article>
               )}
               <article className="panel span-2">
-                <h2>Scenarios</h2>
+                <PanelTitle icon={Scale}>Scenarios</PanelTitle>
                 {scenarioTable}
               </article>
               <article className="panel span-2">
-                <h2>Assumptions</h2>
+                <PanelTitle icon={ClipboardList}>Assumptions</PanelTitle>
                 <div className="table-wrap">
                   <table>
                     <thead>
@@ -1219,7 +1272,7 @@ function App() {
               <article className="panel span-2">
                 <div className="panel-heading">
                   <div>
-                    <h2>Calculation trace</h2>
+                    <PanelTitle icon={Calculator}>Calculation trace</PanelTitle>
                     <p>Every result, how it is calculated, and where each input is entered.</p>
                   </div>
                 </div>

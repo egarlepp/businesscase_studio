@@ -1,4 +1,14 @@
-import { AlertTriangle, CheckCircle2, FilePlus2, Scale } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Columns2,
+  FilePlus2,
+  FileSearch,
+  ChartLine,
+  Scale,
+} from 'lucide-react';
+import { PanelTitle } from './PanelTitle';
+import { useChartColors } from '../../theme/theme';
 import {
   CartesianGrid,
   Legend,
@@ -34,6 +44,7 @@ export function BuildVsBuyPanel({
   onAddEvidence,
 }: BuildVsBuyPanelProps) {
   const b = r.buildVsBuy;
+  const colors = useChartColors();
   const tally = checklistTally(inputs);
   const evidence = assessEvidence(assumptions, BUILD_VS_BUY_CATEGORY);
 
@@ -88,7 +99,7 @@ export function BuildVsBuyPanel({
       {b.configured && (
         <>
           <article className="panel">
-            <h2>Side by side</h2>
+            <PanelTitle icon={Columns2}>Side by side</PanelTitle>
             <div className="table-wrap">
               <table>
                 <caption className="sr-only">Build versus buy comparison</caption>
@@ -114,7 +125,7 @@ export function BuildVsBuyPanel({
             </div>
           </article>
           <article className="panel">
-            <h2>Cumulative net value</h2>
+            <PanelTitle icon={ChartLine}>Cumulative net value</PanelTitle>
             <p className="body-copy">Benefits minus costs to date, before discounting.</p>
             <div className="chart" aria-hidden="true">
               <ResponsiveContainer width="100%" height="100%">
@@ -124,13 +135,13 @@ export function BuildVsBuyPanel({
                   <YAxis tickFormatter={fmt.moneyCompact} width={70} />
                   <Tooltip formatter={(v) => fmt.money(Number(v))} />
                   <Legend />
-                  <ReferenceLine y={0} stroke="#525b6e" />
+                  <ReferenceLine y={0} stroke={colors.reference} />
                   <Line
                     isAnimationActive={false}
                     type="monotone"
                     dataKey="build"
                     name="Build"
-                    stroke="#5f49d7"
+                    stroke={colors.net}
                     strokeWidth={2}
                   />
                   <Line
@@ -138,7 +149,7 @@ export function BuildVsBuyPanel({
                     type="monotone"
                     dataKey="buy"
                     name="Buy"
-                    stroke="#c2410c"
+                    stroke={colors.costs}
                     strokeWidth={2}
                     strokeDasharray="6 4"
                   />
@@ -157,7 +168,7 @@ export function BuildVsBuyPanel({
       <article className="panel span-2">
         <div className="panel-heading">
           <div>
-            <h2>Evidence for the commercial option</h2>
+            <PanelTitle icon={FileSearch}>Evidence for the commercial option</PanelTitle>
             <p>
               Vendor figures need a source and confidence level in the assumption register (category
               “{BUILD_VS_BUY_CATEGORY}”).

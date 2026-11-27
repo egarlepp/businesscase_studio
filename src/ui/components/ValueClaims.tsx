@@ -1,4 +1,5 @@
-import { AlertTriangle, CheckCircle2, ListChecks } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ListChecks, Sparkles } from 'lucide-react';
+import { PanelTitle } from './PanelTitle';
 import {
   EVIDENCE_CLASSES,
   EVIDENCE_LABELS,
@@ -123,7 +124,7 @@ export function ValueClaimsPanel({
       <article className="panel span-2" aria-label="Value claims">
         <div className="panel-heading">
           <div>
-            <h2>Value claims</h2>
+            <PanelTitle icon={Sparkles}>Value claims</PanelTitle>
             <p>
               Claim only what you will defend. Lead with one hard claim and add one or two
               supporting claims. Only claimed types count, and their panels appear below.
@@ -136,9 +137,7 @@ export function ValueClaimsPanel({
       <article className="panel span-2" aria-label="Claim review">
         <div className="panel-heading">
           <div>
-            <h2>
-              <ListChecks size={20} /> Claim review
-            </h2>
+            <PanelTitle icon={ListChecks}>Claim review</PanelTitle>
             <p>
               {review.lead
                 ? `Lead with ${getValueType(review.lead.id).label} (${EVIDENCE_SHORT[review.lead.evidence].toLowerCase()}).`
@@ -215,7 +214,7 @@ export function ClaimsReport({
   const strategic = results.claims.find((c) => !c.countsTowardRoi);
   return (
     <article className="panel span-2" aria-label="Value claims report">
-      <h2>Value claims</h2>
+      <PanelTitle icon={Sparkles}>Value claims</PanelTitle>
       {review.ranked.length === 0 ? (
         <p className="body-copy">No value type is claimed yet.</p>
       ) : (
