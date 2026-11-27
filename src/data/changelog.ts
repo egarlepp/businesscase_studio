@@ -16,6 +16,14 @@ export interface Release {
 
 export const CHANGELOG: readonly Release[] = [
   {
+    version: '0.8.1',
+    date: '2026-11-27',
+    title: 'Tidier Scope questions',
+    changes: [
+      'The Scope questions on the Profile page now sit in two rows of four, with their answer boxes lined up, and wrap to two columns or one on smaller screens.',
+    ],
+  },
+  {
     version: '0.8.0',
     date: '2026-11-27',
     title: 'Scope: which pages apply',
