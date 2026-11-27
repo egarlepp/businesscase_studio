@@ -219,7 +219,7 @@ export const defaultAssumptions: AssumptionItem[] = [
   },
 ];
 
-const scenarioMultipliers: Record<ScenarioName, Partial<Record<keyof Inputs, number>>> = {
+export const SCENARIO_MULTIPLIERS: Record<ScenarioName, Partial<Record<keyof Inputs, number>>> = {
   Conservative: {
     adoptionRate: 0.8,
     realizationRate: 0.8,
@@ -262,7 +262,7 @@ export const SCENARIOS: readonly ScenarioName[] = ['Conservative', 'Expected', '
 
 export function applyScenario(base: Inputs, scenario: ScenarioName): Inputs {
   const next = { ...base };
-  for (const [key, multiplier] of Object.entries(scenarioMultipliers[scenario])) {
+  for (const [key, multiplier] of Object.entries(SCENARIO_MULTIPLIERS[scenario])) {
     const typedKey = key as keyof Inputs;
     if (typeof base[typedKey] === 'number')
       (next[typedKey] as number) = Number(base[typedKey]) * Number(multiplier);

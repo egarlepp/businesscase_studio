@@ -1,7 +1,10 @@
+import { ExternalLink, Info } from 'lucide-react';
 import type { Inputs } from '../../types';
+import { FIELD_HELP, searchUrl } from '../fieldHelp';
 import type { FieldDef } from '../fields';
 import { PREFERENCE_OPTIONS, SCORE_LABELS } from '../fields';
 import { SUPPORTED_CURRENCIES, type Formatters } from '../format';
+import { HintTooltip } from './HintTooltip';
 
 interface FieldProps {
   def: FieldDef;
@@ -17,9 +20,50 @@ export function Field({ def, value, fmt, onChange, highlight = false }: FieldPro
   const id = `field-${def.key}`;
   return (
     <div className={highlight ? 'field guided' : 'field'}>
-      <label htmlFor={id}>{def.label}</label>
+      <div className="field-label">
+        <label htmlFor={id}>{def.label}</label>
+        <FieldHelpButton def={def} />
+      </div>
       <FieldControl id={id} def={def} value={value} fmt={fmt} onChange={onChange} />
     </div>
+  );
+}
+
+/** Info icon beside a field label: explains the field and links to a web search. */
+function FieldHelpButton({ def }: { def: FieldDef }) {
+  const help = FIELD_HELP[def.key];
+  if (!help) return null;
+  return (
+    <HintTooltip
+      interactive
+      className="field-help"
+      content={
+        <>
+          <strong>{def.label}</strong>
+          <span>{help.text}</span>
+          <a
+            className="tooltip-link"
+            href={searchUrl(help.search ?? def.label)}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Search Google <ExternalLink size={12} aria-hidden="true" />
+            <span className="sr-only"> (opens in a new tab)</span>
+          </a>
+        </>
+      }
+    >
+      {(describedBy) => (
+        <button
+          type="button"
+          className="info-button"
+          aria-label={`About ${def.label}`}
+          aria-describedby={describedBy}
+        >
+          <Info size={14} />
+        </button>
+      )}
+    </HintTooltip>
   );
 }
 

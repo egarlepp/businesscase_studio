@@ -315,7 +315,13 @@ header p,
   display: grid;
   gap: 7px;
 }
-.field > label {
+.field-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.field-label label {
   font-size: 12px;
   font-weight: 700;
   color: #5c6577;
@@ -1613,4 +1619,135 @@ tbody th {
 }
 .modal .choice-grid {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+.tooltip-anchor {
+  position: relative;
+  display: inline-flex;
+}
+.scenario-tabs {
+  position: relative;
+}
+.scenario-tabs .tooltip-anchor {
+  position: static;
+}
+.sidebar-note-anchor {
+  display: flex;
+  margin-top: auto;
+}
+.sidebar-note-anchor .sidebar-note {
+  margin-top: 0;
+  flex: 1;
+  border-radius: 8px;
+  cursor: help;
+}
+.sidebar-note:focus-visible {
+  outline: 2px solid #7c5cff;
+  outline-offset: 2px;
+}
+.tooltip-bubble {
+  position: absolute;
+  left: 0;
+  z-index: 40;
+  width: max-content;
+  max-width: min(300px, calc(100vw - 32px));
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #172033;
+  color: #f4f6fa;
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: left;
+  box-shadow: 0 8px 24px #18213a40;
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.tooltip-bubble[data-open='true'] {
+  visibility: visible;
+  opacity: 1;
+}
+.tooltip-bottom {
+  top: calc(100% + 6px);
+}
+.tooltip-top {
+  bottom: calc(100% + 6px);
+}
+.tooltip-bubble strong,
+.tooltip-bubble span {
+  display: block;
+}
+.tooltip-bubble span + span,
+.tooltip-bubble ul + span {
+  margin-top: 6px;
+}
+.tooltip-bubble strong {
+  margin-bottom: 4px;
+  font-size: 13px;
+  color: white;
+}
+.tooltip-bubble ul {
+  margin: 6px 0 0;
+  padding-left: 16px;
+}
+.tooltip-bubble .tooltip-note {
+  color: #aab6cf;
+}
+.sidebar .tooltip-bubble {
+  background: #f4f6fa;
+  color: #172033;
+  border: 1px solid #dde1e9;
+}
+.sidebar .tooltip-bubble strong {
+  color: #172033;
+}
+.sidebar .tooltip-bubble span {
+  font-size: 12.5px;
+  color: #3c4558;
+  margin-top: 6px;
+}
+.field-help .info-button {
+  color: #8a93a6;
+  padding: 1px;
+}
+.field-help .info-button:hover,
+.field-help .info-button:focus-visible {
+  color: #5f49d7;
+}
+.field-help .tooltip-bubble {
+  left: -12px;
+  max-width: min(280px, calc(100vw - 48px));
+}
+.tooltip-interactive {
+  pointer-events: auto;
+}
+.tooltip-interactive::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 8px;
+}
+.tooltip-bottom.tooltip-interactive::before {
+  top: -8px;
+}
+.tooltip-top.tooltip-interactive::before {
+  bottom: -8px;
+}
+.tooltip-bubble .tooltip-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  color: #c9bfff;
+  font-weight: 600;
+  text-decoration: none;
+}
+.tooltip-bubble .tooltip-link:hover,
+.tooltip-bubble .tooltip-link:focus-visible {
+  text-decoration: underline;
+}
+.tooltip-bubble .tooltip-link .sr-only {
+  position: absolute;
 }
