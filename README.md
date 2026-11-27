@@ -16,6 +16,12 @@ Business Case Studio puts both sides in one transparent model.
 > autosaved in this browser only; export a draft to keep or share it. Default numbers are
 > illustrative — replace them with your own approved assumptions.
 
+![Overview: ROI, TCO, NPV, and payback with the cumulative value chart and business-case quality indicators](docs/screenshots/overview.png)
+
+![Scenarios: Conservative, Expected, and Upside comparison with a tornado sensitivity chart](docs/screenshots/scenarios.png)
+
+_Screenshots show the built-in sample data._
+
 ## Features
 
 | Section              | What it does                                                                                                                                                              |
