@@ -350,7 +350,7 @@ Approval questions:
   convert values.
 - **One-at-a-time sensitivity.** The tornado analysis does not capture interactions between
   drivers.
-- **Browser-only storage.** Models are saved in one browser; export drafts to move or share them.
+- **Browser-only storage.** Models are saved in one browser; use Save file and Open file to move or share them as JSON.
 - **Same timing for both options.** Build vs buy assumes the commercial product starts delivering
   benefits on the same schedule as the build; faster time to value for either option is not yet
   modeled. The benefit fit is one blended percentage, not per benefit line.

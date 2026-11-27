@@ -23,6 +23,7 @@ export interface WorkspacePrefs {
 /** The illustrative case shipped with the app. Returns fresh copies on every call. */
 export function sampleDraft(): DraftState {
   return {
+    caseName: '',
     inputs: { ...defaultInputs },
     scenario: 'Expected',
     assumptions: defaultAssumptions.map((item) => ({ ...item })),
@@ -31,7 +32,7 @@ export function sampleDraft(): DraftState {
 
 /** An empty case: no names, no figures, no assumptions. Returns fresh copies on every call. */
 export function blankDraft(): DraftState {
-  return { inputs: { ...blankInputs }, scenario: 'Expected', assumptions: [] };
+  return { caseName: '', inputs: { ...blankInputs }, scenario: 'Expected', assumptions: [] };
 }
 
 const SKIPPED_SAMPLE_KEYS = new Set<string>(BUILD_VS_BUY_KEYS);
@@ -42,6 +43,7 @@ const SKIPPED_SAMPLE_KEYS = new Set<string>(BUILD_VS_BUY_KEYS);
  * ignored because drafts saved before 0.4.0 lack them and are migrated on load.
  */
 export function isSampleDraft(state: DraftState): boolean {
+  if (state.caseName.trim()) return false;
   const inputsMatch = (Object.keys(defaultInputs) as (keyof Inputs)[])
     .filter((key) => !SKIPPED_SAMPLE_KEYS.has(key))
     .every((key) => state.inputs[key] === defaultInputs[key]);
@@ -53,7 +55,7 @@ export function isSampleDraft(state: DraftState): boolean {
 
 /** True when any figure, name, or assumption differs from a blank case. */
 export function hasEnteredData(state: DraftState): boolean {
-  if (state.assumptions.length > 0) return true;
+  if (state.caseName.trim() || state.assumptions.length > 0) return true;
   return (Object.keys(blankInputs) as (keyof Inputs)[]).some(
     (key) => state.inputs[key] !== blankInputs[key],
   );

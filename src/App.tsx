@@ -12,11 +12,13 @@ import {
   Compass,
   Download,
   Eraser,
+  FolderOpen,
   FileSpreadsheet,
   FileText,
   Gauge,
   HeartPulse,
   Printer,
+  Save,
   Scale,
   ShieldCheck,
   ShoppingCart,
@@ -25,6 +27,7 @@ import {
   TrendingUp,
   Upload,
   Users,
+  X,
   type LucideIcon,
 } from 'lucide-react';
 import {
@@ -46,6 +49,7 @@ import { buildCashFlowCsv, downloadFile, fileSlug } from './export/csv';
 import { createDraftFile, getBrowserStorage, parseDraftText } from './persistence/draft';
 import type { Inputs } from './types';
 import { blankAssumption } from './data/assumptions';
+import { CaseTitle } from './ui/components/CaseTitle';
 import { AssumptionRegister } from './ui/components/AssumptionRegister';
 import { BuildVsBuyPanel } from './ui/components/BuildVsBuyPanel';
 import { buildVsBuyHeadline, checklistTally } from './ui/buildVsBuy';
@@ -103,11 +107,15 @@ function App() {
     setScenario,
     assumptions,
     setAssumptions,
+    caseName: ownCaseName,
+    setCaseName,
     canPersist,
     demoMode,
   } = workspace;
   const [section, setSection] = useState<Section>('Overview');
-  const caseName = base.applicationName.trim() || UNTITLED;
+  /** Heading, report title, and file name: the case's own name, else the application name. */
+  const caseName = ownCaseName.trim() || base.applicationName.trim() || UNTITLED;
+  const fileBase = fileSlug(ownCaseName.trim() || base.applicationName);
   const [importStatus, setImportStatus] = useState<ImportStatus>(null);
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const [hasUnseenRelease, setHasUnseenRelease] = useState(
@@ -167,25 +175,26 @@ function App() {
 
   const clearAllData = () => {
     const message = demoMode
-      ? 'Clear all data and start a blank business case? This leaves demo mode and also erases the case saved in this browser. Export a draft first if you need to keep it.'
-      : 'Clear all data? Every figure is set to zero and every name and assumption is removed, including the copy saved in this browser. Export a draft first if you need to keep it.';
+      ? 'Clear all data and start a blank business case? This leaves demo mode and also erases the case saved in this browser. Use Save file first if you need to keep it.'
+      : 'Clear all data? Every figure is set to zero and every name and assumption is removed, including the copy saved in this browser. Use Save file first if you need to keep it.';
     if (!window.confirm(message)) return;
     workspace.clearAllData();
     setImportStatus(null);
   };
 
   const exportDraft = () => {
-    const file = createDraftFile({ inputs: base, scenario, assumptions }, r, APP_VERSION);
-    downloadFile(
-      `${fileSlug(base.applicationName)}.json`,
-      JSON.stringify(file, null, 2),
-      'application/json',
+    const file = createDraftFile(
+      { caseName: ownCaseName, inputs: base, scenario, assumptions },
+      r,
+      APP_VERSION,
+      { guide },
     );
+    downloadFile(`${fileBase}.json`, JSON.stringify(file, null, 2), 'application/json');
   };
 
   const exportCsv = () =>
     downloadFile(
-      `${fileSlug(base.applicationName)}-cash-flow.csv`,
+      `${fileBase}-cash-flow.csv`,
       buildCashFlowCsv(r, fmt.currency),
       'text/csv;charset=utf-8',
     );
@@ -203,14 +212,51 @@ function App() {
       setImportStatus({ kind: 'error', message: result.error, details: [] });
       return;
     }
-    if (!window.confirm(`Replace the current model with "${file.name}"?`)) return;
+    const incoming =
+      result.state.caseName || result.state.inputs.applicationName.trim() || UNTITLED;
+    // Nothing to lose when the user's own case is still empty and is what is on screen.
+    const overwrites = demoMode || !workspace.isBlank;
+    const replaced = demoMode ? 'your own case saved in this browser' : `"${caseName}"`;
+    if (
+      overwrites &&
+      !window.confirm(
+        `Open "${incoming}" from ${file.name}? It replaces ${replaced}. Save the current case to a file first if you want to keep it.`,
+      )
+    )
+      return;
     workspace.loadOwnDraft(result.state);
+    // Walkthrough answers travel with the case; keep the current ones when the file has none.
+    if (result.guide) setGuide({ ...result.guide, introDismissed: true });
     setImportStatus({
       kind: 'success',
-      message: `Imported "${result.state.inputs.applicationName.trim() || UNTITLED}".`,
+      message: `Opened "${incoming}".`,
       details: result.warnings,
     });
   };
+
+  const importStatusBanner = importStatus && (
+    <div className={importStatus.kind === 'error' ? 'warning' : 'success'}>
+      {importStatus.kind === 'error' ? <AlertTriangle size={17} /> : <CheckCircle2 size={17} />}
+      <div>
+        <span>{importStatus.message}</span>
+        {importStatus.details.length > 0 && (
+          <ul>
+            {importStatus.details.map((d) => (
+              <li key={d}>{d}</li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <button
+        type="button"
+        className="icon-button status-dismiss"
+        aria-label="Dismiss message"
+        onClick={() => setImportStatus(null)}
+      >
+        <X size={16} />
+      </button>
+    </div>
+  );
 
   const metricCard = (
     formulaId: string,
@@ -357,7 +403,12 @@ function App() {
           <header>
             <div>
               <span className="eyebrow">BUSINESS CASE / {section.toUpperCase()}</span>
-              <h1>{caseName}</h1>
+              <CaseTitle
+                caseName={ownCaseName}
+                applicationName={base.applicationName}
+                untitled={UNTITLED}
+                onRename={setCaseName}
+              />
               <p>Quantify value, ownership cost, delivery economics, and realized outcomes.</p>
             </div>
             <div className="header-actions">
@@ -384,6 +435,33 @@ function App() {
                 Guide
               </button>
               <DemoToggle />
+              <button
+                type="button"
+                className="reset"
+                title="Download this business case as a JSON file you can open later"
+                onClick={exportDraft}
+              >
+                <Save size={16} />
+                Save file
+              </button>
+              <button
+                type="button"
+                className="reset"
+                title="Open a business case JSON file saved earlier"
+                onClick={() => fileInput.current?.click()}
+              >
+                <FolderOpen size={16} />
+                Open file
+              </button>
+              <input
+                ref={fileInput}
+                type="file"
+                accept="application/json,.json"
+                className="sr-only"
+                tabIndex={-1}
+                aria-label="Open business case file"
+                onChange={importDraft}
+              />
               <button type="button" className="reset" onClick={clearAllData}>
                 <Eraser size={16} />
                 Clear data
@@ -399,6 +477,10 @@ function App() {
           </header>
 
           {demoMode && <DemoBanner />}
+
+          <div role="status" aria-live="polite" className="import-status no-print">
+            {importStatusBanner}
+          </div>
 
           {section === 'Overview' && (
             <>
@@ -873,7 +955,7 @@ function App() {
                 <div className="button-row no-print">
                   <button type="button" className="primary" onClick={exportDraft}>
                     <Download size={17} />
-                    Export draft (JSON)
+                    Save case file (JSON)
                   </button>
                   <button
                     type="button"
@@ -881,7 +963,7 @@ function App() {
                     onClick={() => fileInput.current?.click()}
                   >
                     <Upload size={17} />
-                    Import draft
+                    Open case file
                   </button>
                   <button type="button" className="secondary" onClick={exportCsv}>
                     <FileSpreadsheet size={17} />
@@ -891,36 +973,6 @@ function App() {
                     <Printer size={17} />
                     Print / Save as PDF
                   </button>
-                  <input
-                    ref={fileInput}
-                    type="file"
-                    accept="application/json,.json"
-                    className="sr-only"
-                    tabIndex={-1}
-                    aria-label="Import draft file"
-                    onChange={importDraft}
-                  />
-                </div>
-                <div role="status" aria-live="polite" className="no-print">
-                  {importStatus && (
-                    <div className={importStatus.kind === 'error' ? 'warning' : 'success'}>
-                      {importStatus.kind === 'error' ? (
-                        <AlertTriangle size={17} />
-                      ) : (
-                        <CheckCircle2 size={17} />
-                      )}
-                      <div>
-                        <span>{importStatus.message}</span>
-                        {importStatus.details.length > 0 && (
-                          <ul>
-                            {importStatus.details.map((d) => (
-                              <li key={d}>{d}</li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </article>
               {audience && (

@@ -23,10 +23,10 @@ authentication, and does not transmit model inputs anywhere.
   profile, and anyone with access to the profile can read it. **Reset** replaces it with the
   sample defaults; clearing site data removes it entirely. Do not use the app on a shared browser
   profile for confidential models.
-- **Exports:** "Export draft (JSON)" and "Cash flow (CSV)" write files to your machine. They can
+- **Exports:** "Save file" (a JSON case file) and "Cash flow (CSV)" write files to your machine. They can
   contain labor rates, headcount, pipeline, and cost data. Store them according to your
   organization's data-classification policy.
-- **Imports:** imported drafts are treated as untrusted. They are parsed as JSON (never executed),
+- **Imports:** opened case files are treated as untrusted. They are parsed as JSON (never executed),
   validated field by field against the expected types, capped in size (5 MB) and length, and
   results are always recalculated rather than read from the file. CSV text cells are guarded
   against spreadsheet formula injection.

@@ -1,23 +1,31 @@
 import {
   BUILD_VS_BUY_KEYS,
   BUY_COST_KEYS,
+  blankInputs,
   defaultAssumptions,
-  defaultInputs,
   SCENARIOS,
 } from '../data/defaults';
 import { ASSUMPTION_STATUSES, CONFIDENCE_LEVELS } from '../data/assumptions';
+import { parseGuideValue, type GuideState } from '../guide/storage';
 import { normalizeCurrency } from '../ui/format';
 import type { AssumptionItem, Confidence, Inputs, Results, ScenarioName } from '../types';
 
 export const DRAFT_SCHEMA = 'business-case-studio/draft';
 /** Bump when the draft shape changes, and add a migration in `parseDraft`. */
-export const DRAFT_VERSION = 1;
+export const DRAFT_VERSION = 2;
 export const STORAGE_KEY = 'business-case-studio:draft';
 
 const MAX_TEXT_LENGTH = 500;
+/** Longest business case name kept on import or rename. */
+export const MAX_CASE_NAME_LENGTH = 120;
 const MAX_ASSUMPTIONS = 500;
 /** The editable state of a business case. Results are always recomputed, never restored. */
 export interface DraftState {
+  /**
+   * The business case's own title (added in format 2). Distinct from `inputs.applicationName`,
+   * which names the initiative being evaluated. Empty means "use the application name".
+   */
+  caseName: string;
   inputs: Inputs;
   scenario: ScenarioName;
   assumptions: AssumptionItem[];
@@ -28,45 +36,77 @@ export interface DraftFile extends DraftState {
   version: number;
   appVersion: string;
   exportedAt: string;
+  /** Walkthrough answers and progress (format 2), so a reopened case keeps its audience. */
+  guide?: GuideProgress;
   /** Informational snapshot for readers of the file; ignored on import. */
   results: Results;
 }
 
+/** The part of the walkthrough state that travels with a case file. */
+export type GuideProgress = Pick<GuideState, 'answers' | 'stepId' | 'done'>;
+
 export type ParseResult =
-  { ok: true; state: DraftState; warnings: string[] } | { ok: false; error: string };
+  | {
+      ok: true;
+      state: DraftState;
+      /** Walkthrough progress from the file, or null when the file has none. */
+      guide: GuideProgress | null;
+      warnings: string[];
+    }
+  | { ok: false; error: string };
+
+export interface DraftFileOptions {
+  guide?: GuideProgress | null;
+  now?: Date;
+}
 
 export function createDraftFile(
   state: DraftState,
   results: Results,
   appVersion: string,
-  now: Date = new Date(),
+  { guide = null, now = new Date() }: DraftFileOptions = {},
 ): DraftFile {
   return {
     schema: DRAFT_SCHEMA,
     version: DRAFT_VERSION,
     appVersion,
     exportedAt: now.toISOString(),
+    caseName: state.caseName,
     inputs: state.inputs,
     scenario: state.scenario,
     assumptions: state.assumptions,
+    // Only a walkthrough that has been set up is worth carrying; an unstarted one adds nothing.
+    ...(guide?.answers
+      ? { guide: { answers: guide.answers, stepId: guide.stepId, done: guide.done } }
+      : {}),
     results,
   };
+}
+
+/** Trim and cap a business case name; anything that is not a string becomes empty. */
+export function normalizeCaseName(value: unknown): string {
+  return typeof value === 'string' ? value.trim().slice(0, MAX_CASE_NAME_LENGTH) : '';
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
+/**
+ * Missing or invalid inputs fall back to the blank case (zero, empty, neutral scores), never to
+ * the sample figures: a file saved before a field existed must not gain illustrative benefits
+ * or costs the user never entered.
+ */
 function parseInputs(raw: unknown, warnings: string[]): Inputs {
-  const inputs: Inputs = { ...defaultInputs };
+  const inputs: Inputs = { ...blankInputs };
   if (!isRecord(raw)) {
-    warnings.push('No inputs found; sample defaults were used.');
+    warnings.push('No inputs found; the case was opened blank.');
     return inputs;
   }
   const rejected: string[] = [];
-  for (const key of Object.keys(defaultInputs) as (keyof Inputs)[]) {
+  for (const key of Object.keys(blankInputs) as (keyof Inputs)[]) {
     if (!(key in raw)) continue;
     const value = raw[key];
-    const expected = typeof defaultInputs[key];
+    const expected = typeof blankInputs[key];
     if (expected === 'number' && typeof value === 'number' && Number.isFinite(value)) {
       (inputs[key] as number) = value;
     } else if (expected === 'string' && typeof value === 'string') {
@@ -91,12 +131,13 @@ function parseInputs(raw: unknown, warnings: string[]): Inputs {
     );
   }
 
-  const unknown = Object.keys(raw).filter((key) => !(key in defaultInputs));
+  const unknown = Object.keys(raw).filter((key) => !(key in blankInputs));
   if (rejected.length)
-    warnings.push(`Ignored invalid values for: ${rejected.join(', ')} (defaults kept).`);
+    warnings.push(`Ignored invalid values for: ${rejected.join(', ')} (left blank).`);
   if (unknown.length) warnings.push(`Ignored unrecognized fields: ${unknown.join(', ')}.`);
-  const missing = Object.keys(defaultInputs).filter((key) => !(key in raw) && !migrated.has(key));
-  if (missing.length) warnings.push(`Filled missing fields with defaults: ${missing.join(', ')}.`);
+  const missing = Object.keys(blankInputs).filter((key) => !(key in raw) && !migrated.has(key));
+  if (missing.length)
+    warnings.push(`Fields not in the file were left blank: ${missing.join(', ')}.`);
   return inputs;
 }
 
@@ -136,8 +177,10 @@ function parseAssumptions(raw: unknown, warnings: string[]): AssumptionItem[] {
 }
 
 /**
- * Validate and migrate an untrusted draft. Accepts the current versioned format and the legacy
- * unversioned export (`{ inputs, scenario, results, assumptions }`). Never throws.
+ * Validate and migrate an untrusted draft. Accepts every versioned format up to `DRAFT_VERSION`
+ * (format 1 has no case name or walkthrough) and the legacy unversioned export
+ * (`{ inputs, scenario, results, assumptions }`). Unknown fields are ignored and missing ones are
+ * left blank, so files from other versions of the app still open. Never throws.
  */
 export function parseDraft(data: unknown): ParseResult {
   if (!isRecord(data)) return { ok: false, error: 'The file does not contain a draft object.' };
@@ -165,7 +208,17 @@ export function parseDraft(data: unknown): ParseResult {
   if (SCENARIOS.includes(data.scenario as ScenarioName)) scenario = data.scenario as ScenarioName;
   else if (data.scenario !== undefined) warnings.push('Unknown scenario; Expected was selected.');
   const assumptions = parseAssumptions(data.assumptions, warnings);
-  return { ok: true, state: { inputs, scenario, assumptions }, warnings };
+  const caseName = normalizeCaseName(data.caseName);
+  if (typeof data.caseName === 'string' && data.caseName.trim().length > MAX_CASE_NAME_LENGTH)
+    warnings.push(`The case name was shortened to ${MAX_CASE_NAME_LENGTH} characters.`);
+  let guide: GuideProgress | null = null;
+  const rawAnswers = isRecord(data.guide) ? data.guide.answers : undefined;
+  if (rawAnswers !== undefined && rawAnswers !== null) {
+    const { answers, stepId, done } = parseGuideValue(data.guide);
+    if (answers) guide = { answers, stepId, done };
+    else warnings.push('Walkthrough answers in the file were not recognized and were skipped.');
+  }
+  return { ok: true, state: { caseName, inputs, scenario, assumptions }, guide, warnings };
 }
 
 export function parseDraftText(text: string): ParseResult {

@@ -1614,3 +1614,54 @@ tbody th {
 .modal .choice-grid {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
+
+/* Business case name and case files */
+.case-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.case-title h1 {
+  overflow-wrap: anywhere;
+}
+.case-title .icon-button:hover,
+.status-dismiss.icon-button:hover {
+  background: #eeebfc;
+  color: #4b3bb8;
+}
+.case-title.editing {
+  margin: 7px 0 6px;
+}
+.case-title-input {
+  font-size: 24px;
+  font-weight: 700;
+  min-width: 0;
+  width: min(520px, 100%);
+  border: 1px solid #c9c2f3;
+  border-radius: 8px;
+  padding: 4px 10px;
+  color: inherit;
+}
+.case-title-input:focus {
+  border-color: #7c68e8;
+  outline: none;
+  box-shadow: 0 0 0 3px #7c68e826;
+}
+.case-application {
+  margin: -2px 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #5c6577;
+}
+.import-status:not(:empty) {
+  margin-bottom: 18px;
+}
+.import-status .warning > div,
+.import-status .success > div {
+  flex: 1;
+}
+.status-dismiss {
+  margin: -4px -4px -4px 0;
+  color: inherit;
+}

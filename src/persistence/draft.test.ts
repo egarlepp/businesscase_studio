@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { calculateBusinessCase } from '../calculations/engine';
-import { defaultAssumptions, defaultInputs } from '../data/defaults';
+import { blankInputs, defaultAssumptions, defaultInputs } from '../data/defaults';
 import {
   DRAFT_SCHEMA,
   DRAFT_VERSION,
+  MAX_CASE_NAME_LENGTH,
   STORAGE_KEY,
   clearStoredDraft,
   createDraftFile,
@@ -15,6 +16,7 @@ import {
 } from './draft';
 
 const state: DraftState = {
+  caseName: 'Pipeline Hub FY27 funding request',
   inputs: { ...defaultInputs, applicationName: 'Pipeline Hub', users: 120, currency: 'EUR' },
   scenario: 'Upside',
   assumptions: defaultAssumptions,
@@ -51,7 +53,110 @@ describe('draft export/import', () => {
     expect(parsed.ok).toBe(true);
     if (parsed.ok) {
       expect(parsed.state).toEqual(state);
+      expect(parsed.guide).toBeNull();
       expect(parsed.warnings).toEqual([]);
+    }
+  });
+
+  it('round-trips the case name and walkthrough answers', () => {
+    const guide = {
+      answers: {
+        audience: 'cro' as const,
+        stage: 'idea' as const,
+        aiAssisted: 'yes' as const,
+        buyOption: 'yes' as const,
+        levers: ['productivity' as const],
+      },
+      stepId: 'profile-scope',
+      done: ['profile-basics'],
+    };
+    const file = createDraftFile(state, calculateBusinessCase(state.inputs), '0.6.0', {
+      guide: { ...guide, introDismissed: true } as typeof guide,
+      now: new Date('2026-11-27T00:00:00Z'),
+    });
+    expect(file.caseName).toBe(state.caseName);
+    expect(file.exportedAt).toBe('2026-11-27T00:00:00.000Z');
+    expect(file.guide).toEqual(guide);
+    const parsed = parseDraftText(JSON.stringify(file));
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) {
+      expect(parsed.state.caseName).toBe(state.caseName);
+      expect(parsed.guide?.answers).toEqual(guide.answers);
+      expect(parsed.warnings).toEqual([]);
+    }
+  });
+
+  it('opens a format 1 file with no case name or walkthrough', () => {
+    const parsed = parseDraft({
+      schema: DRAFT_SCHEMA,
+      version: 1,
+      inputs: state.inputs,
+      scenario: 'Upside',
+      assumptions: [],
+    });
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) {
+      expect(parsed.state.caseName).toBe('');
+      expect(parsed.state.inputs).toEqual(state.inputs);
+      expect(parsed.guide).toBeNull();
+      expect(parsed.warnings).toEqual([]);
+    }
+  });
+
+  it('ignores extra fields and leaves missing ones blank instead of using sample figures', () => {
+    const inputs: Record<string, unknown> = { ...defaultInputs, futureValueType: 42 };
+    delete inputs.contractorHoursAvoided;
+    delete inputs.influencedPipeline;
+    const parsed = parseDraft({
+      schema: DRAFT_SCHEMA,
+      version: DRAFT_VERSION,
+      caseName: 'Case',
+      inputs,
+      somethingNew: { nested: true },
+    });
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) {
+      expect(parsed.state.inputs.contractorHoursAvoided).toBe(0);
+      expect(parsed.state.inputs.influencedPipeline).toBe(0);
+      expect(parsed.state.inputs).not.toHaveProperty('futureValueType');
+      const text = parsed.warnings.join(' ');
+      expect(text).toMatch(/futureValueType/);
+      expect(text).toMatch(/left blank: contractorHoursAvoided, influencedPipeline/);
+    }
+  });
+
+  it('trims, caps, and type-checks the case name', () => {
+    const name = (caseName: unknown) => {
+      const parsed = parseDraft({ schema: DRAFT_SCHEMA, version: 2, caseName, inputs: {} });
+      return parsed.ok ? parsed.state.caseName : null;
+    };
+    expect(name('  Spaced  ')).toBe('Spaced');
+    expect(name(42)).toBe('');
+    expect(name('x'.repeat(500))).toHaveLength(MAX_CASE_NAME_LENGTH);
+  });
+
+  it('omits an unstarted walkthrough from the file and accepts one quietly', () => {
+    const empty = { answers: null, stepId: null, done: [] };
+    const file = createDraftFile(state, calculateBusinessCase(state.inputs), '0.6.0', {
+      guide: empty,
+    });
+    expect(file).not.toHaveProperty('guide');
+    const parsed = parseDraft({ ...file, guide: empty });
+    expect(parsed.ok && parsed.guide).toBeNull();
+    expect(parsed.ok && parsed.warnings).toEqual([]);
+  });
+
+  it('skips unrecognized walkthrough answers but keeps the case', () => {
+    const parsed = parseDraft({
+      schema: DRAFT_SCHEMA,
+      version: 2,
+      inputs: {},
+      guide: { answers: { audience: 'nobody' } },
+    });
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) {
+      expect(parsed.guide).toBeNull();
+      expect(parsed.warnings.join(' ')).toMatch(/Walkthrough answers/);
     }
   });
 
@@ -92,8 +197,8 @@ describe('draft export/import', () => {
     });
     expect(parsed.ok).toBe(true);
     if (parsed.ok) {
-      expect(parsed.state.inputs.users).toBe(defaultInputs.users);
-      expect(parsed.state.inputs.applicationName).toBe(defaultInputs.applicationName);
+      expect(parsed.state.inputs.users).toBe(blankInputs.users);
+      expect(parsed.state.inputs.applicationName).toBe(blankInputs.applicationName);
       const text = parsed.warnings.join(' ');
       expect(text).toMatch(/users/);
       expect(text).toMatch(/evil/);
@@ -109,10 +214,10 @@ describe('draft export/import', () => {
     if (parsed.ok) {
       expect(parsed.state.inputs.buyImplementationCost).toBe(0);
       expect(parsed.state.inputs.buySubscriptionPerUserMonth).toBe(0);
-      expect(parsed.state.inputs.buyBenefitFit).toBe(defaultInputs.buyBenefitFit);
+      expect(parsed.state.inputs.buyBenefitFit).toBe(blankInputs.buyBenefitFit);
       const text = parsed.warnings.join(' ');
       expect(text).toMatch(/predates the build-vs-buy comparison/);
-      expect(text).not.toMatch(/Filled missing fields/);
+      expect(text).not.toMatch(/left blank:/);
     }
   });
 
