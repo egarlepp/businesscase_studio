@@ -107,6 +107,34 @@ export const defaultInputs: Inputs = {
   bvbSecurity: 0,
 };
 
+/**
+ * Model conventions kept on a blank case: they describe how the model is evaluated, not the
+ * initiative, and zeroing them would make the model meaningless (a 0-year horizon, 0 work weeks).
+ * Everything else starts at zero or empty so no sample figure leaks into a real case.
+ */
+export const BLANK_MODEL_SETTINGS = {
+  currency: 'USD',
+  horizonYears: 3,
+  discountRate: 0.08,
+  workWeeks: 48,
+  annualProductiveHours: 1880,
+} as const satisfies Partial<Inputs>;
+
+/** Neutral technical-health score (3, "Moderate") used until the user assesses each area. */
+export const UNASSESSED_SCORE = 3;
+
+/** An empty business case: no names, no figures, neutral technical-health scores. */
+export const blankInputs: Inputs = (() => {
+  const blank = { ...defaultInputs };
+  for (const key of Object.keys(blank) as (keyof Inputs)[]) {
+    const value = blank[key];
+    if (typeof value === 'string') (blank[key] as string) = '';
+    else if (key.endsWith('Score')) (blank[key] as number) = UNASSESSED_SCORE;
+    else (blank[key] as number) = 0;
+  }
+  return { ...blank, ...BLANK_MODEL_SETTINGS };
+})();
+
 /** Commercial cost inputs; when all are zero the build-vs-buy comparison is not configured. */
 export const BUY_COST_KEYS = [
   'buySubscriptionPerUserMonth',

@@ -12,7 +12,7 @@ governance, and technical debt. On the other side, internal tools create value t
 ROI models miss: recovered capacity, avoided hiring, faster reporting, and reduced risk.
 Business Case Studio puts both sides in one transparent model.
 
-> **Status:** early MVP (v0.4.0). Runs entirely in the browser with no backend. Your model is
+> **Status:** early MVP (v0.5.0). Runs entirely in the browser with no backend. Your model is
 > autosaved in this browser only; export a draft to keep or share it. Default numbers are
 > illustrative — replace them with your own approved assumptions.
 
@@ -101,10 +101,24 @@ The engine is a pure function (`calculateBusinessCase(inputs) → results`) with
 dependencies, so it can be tested and reused independently. `formulas.test.ts` perturbs each
 input to prove the formula registry matches what the engine actually computes.
 
+## Blank start and demo data
+
+On first launch the app asks whether to **start blank** (every figure zero, no names or
+assumptions) or **explore demo data** (an illustrative sample case). The **Demo data** switch in the
+header flips between the two at any time. Demo edits are kept in memory only; your own case stays
+saved and returns when the switch is turned off. **Clear data** zeroes every figure and removes all
+assumptions after a confirmation. Horizon (3 years), discount rate (8%), working weeks (48), and
+productive hours (1,880) keep standard values on a blank case, and technical-health scores start at
+3 (Moderate) until assessed.
+
+Other features can call these actions through `useWorkspace()` in `src/workspace/useWorkspace.ts`
+(`startBlank`, `enterDemo`, `exitDemo`, `clearAllData`, plus `demoMode` and `isBlank`).
+
 ## Data and privacy
 
 There is no server. Your model is autosaved to this browser's `localStorage` and never transmitted.
-Anyone with access to the same browser profile can see it; use **Reset** to clear it. Exported
+Anyone with access to the same browser profile can see it; use **Clear data** to erase it and start
+blank. Exported
 JSON and CSV files can contain sensitive staffing and financial data; store them accordingly. See
 [SECURITY.md](SECURITY.md).
 

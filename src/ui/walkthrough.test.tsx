@@ -8,23 +8,26 @@ import { GUIDE_STORAGE_KEY } from '../guide/storage';
 const guide = () => within(screen.getByRole('complementary', { name: 'Guided walkthrough' }));
 const eyebrow = (name: string) => screen.getByText(`BUSINESS CASE / ${name.toUpperCase()}`);
 
-async function startAsCfo(user: ReturnType<typeof userEvent.setup>) {
+/** First launch: choose a blank case with the guide from the welcome dialog. */
+async function startGuide(user: ReturnType<typeof userEvent.setup>) {
   render(<App />);
-  await user.click(screen.getByRole('button', { name: 'Start walkthrough' }));
+  await user.click(screen.getByRole('button', { name: /Start with the guide/ }));
+}
+
+async function startAsCfo(user: ReturnType<typeof userEvent.setup>) {
+  await startGuide(user);
   await user.click(guide().getByRole('radio', { name: 'CFO / Finance' }));
   await user.click(guide().getByRole('button', { name: /Start walkthrough/ }));
 }
 
 describe('Guided walkthrough', () => {
-  it('invites first-time users and can be dismissed for good', async () => {
+  it('is offered on first launch and from the empty Overview', async () => {
     const user = userEvent.setup();
-    const { unmount } = render(<App />);
-    expect(screen.getByRole('region', { name: 'Getting started' })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Not now' }));
-    expect(screen.queryByRole('region', { name: 'Getting started' })).toBeNull();
-    unmount();
     render(<App />);
-    expect(screen.queryByRole('region', { name: 'Getting started' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: /Start blank/ }));
+    expect(screen.queryByRole('complementary', { name: 'Guided walkthrough' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Start the guided walkthrough' }));
+    expect(guide().getByRole('heading', { name: 'Set up your walkthrough' })).toBeInTheDocument();
   });
 
   it('asks setup questions, then opens the first page with examples', async () => {
@@ -43,6 +46,7 @@ describe('Guided walkthrough', () => {
       guide().getByRole('button', { name: 'Use example for Application or initiative' }),
     );
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Quote Approval Portal');
+    expect(guide().getByText('Yours: Quote Approval Portal')).toBeInTheDocument();
     expect(
       guide().getByRole('button', { name: 'Use example for Application or initiative' }),
     ).toBeDisabled();
@@ -71,8 +75,7 @@ describe('Guided walkthrough', () => {
 
   it('tailors steps to the answers', async () => {
     const user = userEvent.setup();
-    render(<App />);
-    await user.click(screen.getByRole('button', { name: 'Start walkthrough' }));
+    await startGuide(user);
     await user.click(guide().getByRole('radio', { name: 'CRO / Sales leader' }));
     await user.click(guide().getByRole('radio', { name: /Live in production/ }));
     const ai = guide().getByRole('group', { name: /AI coding tools/ });
