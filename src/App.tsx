@@ -67,6 +67,8 @@ import { getAudience } from './guide/audiences';
 import { stepsFor } from './guide/steps';
 import { loadGuideState, saveGuideState, type GuideState } from './guide/storage';
 import { AudienceBriefing } from './ui/components/AudienceBriefing';
+import { ModuleNotice, ScopePanel, ScopeReport } from './ui/components/Scope';
+import { isSectionOff, moduleForSection } from './data/scope';
 import { ClaimsReport, ValueClaimsPanel } from './ui/components/ValueClaims';
 import { reviewClaims } from './guide/claimReview';
 import { claimKey, isClaimed, type ValueTypeId } from './data/valueTypes';
@@ -94,6 +96,9 @@ const SECTIONS: Array<[Section, LucideIcon]> = [
   ['Actuals', Target],
   ['Reports', FileText],
 ];
+
+/** Browser preference: hide pages marked not applicable from the navigation. */
+const HIDE_OFF_PAGES_KEY = 'business-case-studio:hide-off-pages';
 
 const CHART_COLORS = { benefits: '#2f7d5b', costs: '#c2410c', net: '#5f49d7', bar: '#5f49d7' };
 
@@ -136,6 +141,21 @@ function App() {
   const [guideOpen, setGuideOpen] = useState(false);
   const audience = guide.answers ? getAudience(guide.answers.audience) : null;
   const navigate = useCallback((next: Section) => setSection(next), []);
+  const [hideOffPages, setHideOffPagesState] = useState(() => {
+    try {
+      return getBrowserStorage()?.getItem(HIDE_OFF_PAGES_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+  const setHideOffPages = (hide: boolean) => {
+    setHideOffPagesState(hide);
+    try {
+      getBrowserStorage()?.setItem(HIDE_OFF_PAGES_KEY, hide ? '1' : '0');
+    } catch {
+      // Storage blocked: the choice lasts for this session only.
+    }
+  };
   useEffect(() => {
     saveGuideState(getBrowserStorage(), guide);
   }, [guide]);
@@ -182,13 +202,17 @@ function App() {
     [setBase],
   );
 
-  const stage = guide.answers?.stage ?? null;
-  const buyOption = guide.answers?.buyOption ?? null;
+  // The case's scope wins over the walkthrough answers it was seeded from.
+  const asStage = (v: string) => (v === 'idea' || v === 'built' || v === 'live' ? v : null);
+  const asAnswer = (v: string) => (v === 'yes' || v === 'no' || v === 'unsure' ? v : null);
+  const stage = asStage(base.scopeStage) ?? guide.answers?.stage ?? null;
+  const buyOption = asAnswer(base.scopeBuyOption) ?? guide.answers?.buyOption ?? null;
   const claimReview = useMemo(
     () => reviewClaims(modeled, r, { stage, buyOption }),
     [modeled, r, stage, buyOption],
   );
   const guardrails = [...r.warnings, ...claimReview.warnings];
+  const offPageCount = SECTIONS.filter(([name]) => isSectionOff(base, name)).length;
 
   // Only lines with value: unclaimed value types would otherwise fill the chart with zeros.
   const benefitMix = Object.entries(r.benefitBreakdown)
@@ -361,7 +385,7 @@ function App() {
   const groups = FIELD_GROUPS[section]?.filter((g) => !g.valueType || isClaimed(base, g.valueType));
   const guideHighlights = new Set<keyof Inputs>(
     guideOpen && guide.answers
-      ? (stepsFor(guide.answers)
+      ? (stepsFor(guide.answers, base)
           .find((s) => s.id === guide.stepId)
           ?.examples.map((e) => e.key) ?? [])
       : [],
@@ -395,14 +419,22 @@ function App() {
             </div>
           </div>
           <nav aria-label="Sections">
-            {SECTIONS.map(([name, Icon]) => (
+            {SECTIONS.filter(
+              ([name]) => !(hideOffPages && name !== section && isSectionOff(base, name)),
+            ).map(([name, Icon]) => (
               <button
                 type="button"
                 key={name}
-                className={section === name ? 'nav-item active' : 'nav-item'}
+                className={[
+                  'nav-item',
+                  section === name && 'active',
+                  isSectionOff(base, name) && 'off',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
                 aria-current={section === name ? 'page' : undefined}
                 aria-label={name}
-                title={name}
+                title={isSectionOff(base, name) ? `${name}: not applicable for this scope` : name}
                 onClick={() => setSection(name)}
               >
                 <Icon size={18} />
@@ -416,6 +448,18 @@ function App() {
                 )}
               </button>
             ))}
+            {offPageCount > 0 && (
+              <button
+                type="button"
+                className="nav-toggle"
+                aria-pressed={hideOffPages}
+                onClick={() => setHideOffPages(!hideOffPages)}
+              >
+                {hideOffPages
+                  ? `Show ${offPageCount} hidden page${offPageCount === 1 ? '' : 's'}`
+                  : `Hide ${offPageCount} not applicable`}
+              </button>
+            )}
           </nav>
           <HintTooltip
             placement="top"
@@ -561,6 +605,14 @@ function App() {
           </header>
 
           {demoMode && <DemoBanner />}
+          {moduleForSection(base, section) && (
+            <ModuleNotice
+              inputs={base}
+              section={section}
+              onChange={update}
+              onOpenScope={() => setSection('Profile')}
+            />
+          )}
 
           <div role="status" aria-live="polite" className="import-status no-print">
             {importStatusBanner}
@@ -761,6 +813,7 @@ function App() {
 
           {groups && (
             <section className="form-layout">
+              {section === 'Profile' && <ScopePanel inputs={base} onChange={update} />}
               {section === 'Benefits' && (
                 <ValueClaimsPanel
                   inputs={base}
@@ -1086,6 +1139,7 @@ function App() {
                   onChangeAudience={() => openGuide(true)}
                 />
               )}
+              <ScopeReport inputs={base} />
               <article className="panel">
                 <h2>Key metrics</h2>
                 <dl className="score-list">
@@ -1114,7 +1168,7 @@ function App() {
                 {warningList}
               </article>
               <ClaimsReport inputs={modeled} results={r} review={claimReview} fmt={fmt} />
-              {r.buildVsBuy.configured && (
+              {r.buildVsBuy.configured && !isSectionOff(base, 'Build vs Buy') && (
                 <article className="panel span-2">
                   <h2>Build versus buy</h2>
                   <p className="body-copy">

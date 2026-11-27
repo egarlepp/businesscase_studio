@@ -82,6 +82,19 @@ export const defaultInputs: Inputs = {
   pilotSuccessThreshold:
     'A 10-person pilot saves at least 25 minutes per user per week over six weeks.',
   killCriterion: 'Stop if adoption is below 40% after 90 days.',
+  // The sample is a live internal workflow app, built with AI tools, with a vendor alternative.
+  scopeAppType: 'workflow',
+  scopeUsers: 'internal',
+  scopeData: 'internal',
+  scopeAiBuild: 'yes',
+  scopeAiRuntime: 'assistive',
+  scopeIntegrations: 'few',
+  scopeBuyOption: 'yes',
+  scopeStage: 'live',
+  moduleAiDevelopment: '',
+  moduleBuildVsBuy: '',
+  moduleTechnicalHealth: '',
+  moduleActuals: '',
   ...claimInputs(CORE_VALUE_TYPES, {
     productivity: 'Time study of 12 users, before and after',
     capacity: 'Contractor invoices, last 12 months',

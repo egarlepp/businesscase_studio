@@ -12,6 +12,7 @@ import {
   type ValueType,
 } from '../../data/valueTypes';
 import type { Audience } from '../../guide/audiences';
+import { suggestClaims } from '../../data/scope';
 import type { ClaimReview } from '../../guide/claimReview';
 import type { Inputs, Results } from '../../types';
 import type { Formatters } from '../format';
@@ -40,6 +41,7 @@ export function ValueClaimsPanel({
   onChange,
 }: ValueClaimsProps) {
   const recommended = new Set(audience?.recommendedClaims ?? []);
+  const fits = new Set(suggestClaims(inputs).map((s) => s.id));
   const valueOf = (type: ValueType) => results.claims.find((c) => c.id === type.id)?.value ?? 0;
 
   const row = (type: ValueType) => {
@@ -59,6 +61,7 @@ export function ValueClaimsPanel({
             {recommended.has(type.id) && audience && (
               <span className="claim-badge">For {audience.title}</span>
             )}
+            {fits.has(type.id) && <span className="claim-badge scope">Fits this app</span>}
             {!type.countsTowardRoi && <span className="claim-badge muted">Not in ROI</span>}
             <small>{type.measure}</small>
           </label>

@@ -83,6 +83,19 @@ export interface Inputs extends ValueClaimInputs {
   pilotSuccessThreshold: string;
   /** The result that stops the initiative. */
   killCriterion: string;
+  // Scope (see data/scope.ts). Empty means not answered, or for modules, use the recommendation.
+  scopeAppType: string;
+  scopeUsers: string;
+  scopeData: string;
+  scopeAiBuild: string;
+  scopeAiRuntime: string;
+  scopeIntegrations: string;
+  scopeBuyOption: string;
+  scopeStage: string;
+  moduleAiDevelopment: string;
+  moduleBuildVsBuy: string;
+  moduleTechnicalHealth: string;
+  moduleActuals: string;
   initialLaborHours: number;
   initialLaborRate: number;
   discoveryHours: number;

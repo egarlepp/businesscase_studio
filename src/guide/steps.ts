@@ -1,6 +1,7 @@
 import type { Inputs } from '../types';
 import type { Section } from '../ui/fields';
 import type { AudienceId, ValueLever } from './audiences';
+import { moduleForSection, type ScopeSource } from '../data/scope';
 
 export type Stage = 'idea' | 'built' | 'live';
 export type Answer = 'yes' | 'no' | 'unsure';
@@ -569,7 +570,13 @@ export const GUIDE_STEPS: GuideStep[] = [
   },
 ];
 
-/** The steps that apply to these answers, in order. */
-export function stepsFor(answers: GuideAnswers): GuideStep[] {
-  return GUIDE_STEPS.filter((s) => !s.when || s.when(answers));
+/** The steps that apply to these answers and, when given, the case's scope, in order. */
+export function stepsFor(answers: GuideAnswers, scope?: ScopeSource): GuideStep[] {
+  return GUIDE_STEPS.filter((s) => {
+    // With the case's scope, a page that belongs to a module follows the module's tier, which
+    // the user can override, instead of the setup answer that only recommends it.
+    const module = scope && moduleForSection(scope, s.section);
+    if (module) return module.tier !== 'off';
+    return !s.when || s.when(answers);
+  });
 }

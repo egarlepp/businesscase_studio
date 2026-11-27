@@ -8,6 +8,7 @@ import {
   SCENARIOS,
 } from '../data/defaults';
 import { CLAIM_KEYS, claimKey } from '../data/valueTypes';
+import { MODULE_KEYS, SCOPE_INPUT_KEYS, SCOPE_QUESTIONS, isTier } from '../data/scope';
 import { ASSUMPTION_STATUSES, CONFIDENCE_LEVELS } from '../data/assumptions';
 import { parseGuideValue, type GuideState } from '../guide/storage';
 import { normalizeCurrency } from '../ui/format';
@@ -143,6 +144,21 @@ function parseInputs(raw: unknown, warnings: string[]): Inputs {
       'This draft predates value claims; its four original benefit types stay claimed. Add others on the Benefits page.',
     );
   }
+
+  // Migration: drafts saved before v0.8.0 have no scope. Unanswered scope is the default, so
+  // the missing keys need no warning.
+  if (!SCOPE_INPUT_KEYS.some((key) => key in raw)) SCOPE_INPUT_KEYS.forEach((k) => migrated.add(k));
+  // Scope answers and module tiers outside their option lists are treated as unanswered.
+  for (const q of SCOPE_QUESTIONS)
+    if (inputs[q.key] !== '' && !q.options.some((o) => o.value === inputs[q.key])) {
+      inputs[q.key] = '';
+      rejected.push(q.key);
+    }
+  for (const key of MODULE_KEYS)
+    if (inputs[key] !== '' && !isTier(inputs[key])) {
+      inputs[key] = '';
+      rejected.push(key);
+    }
 
   const unknown = Object.keys(raw).filter((key) => !(key in blankInputs));
   if (rejected.length)

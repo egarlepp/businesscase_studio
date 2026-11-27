@@ -1,2 +1,2 @@
 /** Application version, kept in sync with package.json by src/version.test.ts. */
-export const APP_VERSION = '0.7.0';
+export const APP_VERSION = '0.8.0';

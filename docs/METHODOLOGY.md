@@ -14,7 +14,7 @@ and the code disagree, the code is authoritative — please open an issue.
 - [Actuals](#actuals)
 - [Build versus buy](#build-versus-buy)
 - [Model confidence and guardrails](#model-confidence-and-guardrails)
-- [Right-sizing the analysis](#right-sizing-the-analysis)
+- [Right-sizing the analysis](#right-sizing-the-analysis) (including [scope](#scope-and-module-tiers))
 - [Decision guidance](#decision-guidance)
 - [Recommended review process](#recommended-review-process)
 - [Known limitations](#known-limitations)
@@ -337,6 +337,31 @@ for a small internal tool:
 
 A smaller model with documented assumptions is more credible than a large model filled with
 invented precision.
+
+### Scope and module tiers
+
+The **Scope** panel on the Profile page (also asked in the guided walkthrough) records what kind of
+application the case is for: application type, who uses it, data sensitivity, AI coding tools,
+AI in production, integrations, whether a commercial product exists, and stage. The answers mark
+each optional page as essential, optional, or not applicable. The user can override any tier.
+
+| Page             | Essential when                                                             | Not applicable when                |
+| ---------------- | -------------------------------------------------------------------------- | ---------------------------------- |
+| AI Development   | Built with AI coding tools                                                 | Not built with AI coding tools     |
+| Build vs Buy     | A commercial product could do the job                                      | No commercial product does the job |
+| Technical Health | Customer-facing, personal or regulated data, many integrations, or AI-core | Only when the user turns it off    |
+| Actuals          | Live in production                                                         | Idea or proposal                   |
+
+Scope never removes costs. A page that is not applicable keeps its inputs, the guide skips it,
+and Reports leave it out, but any cost entered there still counts in TCO and raises a guardrail.
+Benefits are switched on and off per value type (claims); scope only suggests which value types
+fit the application.
+
+Scope adds guardrails for essential pieces that are still empty: production AI with no runtime
+cost, sensitive data with no security review or annual security cost, regulated data with no
+governance cost, a customer-facing app with no monitoring, many integrations with no architecture
+hours, and essential pages with nothing entered. The Reports page lists the scope, the tier of
+each page, what was left out and why, and value types that fit but are not claimed.
 
 ## Decision guidance
 

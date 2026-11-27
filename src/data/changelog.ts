@@ -16,6 +16,19 @@ export interface Release {
 
 export const CHANGELOG: readonly Release[] = [
   {
+    version: '0.8.0',
+    date: '2026-11-27',
+    title: 'Scope: which pages apply',
+    changes: [
+      'A new Scope panel on the Profile page asks what kind of application this is: its type, who uses it, what data it handles, how it uses AI, how many systems it integrates with, whether you could buy a product instead, and where it stands today. The guided walkthrough asks the same questions.',
+      'The answers mark AI Development, Build vs Buy, Technical Health, and Actuals as essential, optional, or not applicable. You can override any of them.',
+      'Pages that do not apply are greyed out in the navigation and can be hidden. Their inputs are kept, and any costs entered there still count in TCO.',
+      'Scope suggests the value types that fit the application, with one-click claiming, and marks them "Fits this app" on the Benefits page.',
+      'New guardrails catch costs the scope makes essential but are still zero, such as production AI with no runtime cost or personal data with no security spend.',
+      'Reports add a Scope section listing what was left out and why.',
+    ],
+  },
+  {
     version: '0.7.0',
     date: '2026-11-27',
     title: 'More value types and claim review',
