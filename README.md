@@ -12,7 +12,7 @@ governance, and technical debt. On the other side, internal tools create value t
 ROI models miss: recovered capacity, avoided hiring, faster reporting, and reduced risk.
 Business Case Studio puts both sides in one transparent model.
 
-> **Status:** early MVP (v0.7.0). Runs entirely in the browser with no backend. Your model is
+> **Status:** early MVP (v0.7.1). Runs entirely in the browser with no backend. Your model is
 > autosaved in this browser only; use **Save file** to keep or share it as JSON. Default numbers are
 > illustrative — replace them with your own approved assumptions.
 

@@ -4,35 +4,41 @@ interface ChartTableProps {
   rows: (string | number)[][];
 }
 
-/** Screen-reader-only data table that mirrors a chart. */
+/**
+ * Screen-reader-only data table that mirrors a chart. The visually hidden class sits on a
+ * wrapper div because tables ignore `height` and `overflow`: on the table itself the hidden
+ * copy kept its full height and stretched the page below the content.
+ */
 export function ChartTable({ caption, columns, rows }: ChartTableProps) {
   return (
-    <table className="sr-only">
-      <caption>{caption}</caption>
-      <thead>
-        <tr>
-          {columns.map((c) => (
-            <th key={c} scope="col">
-              {c}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row, i) => (
-          <tr key={i}>
-            {row.map((cell, j) =>
-              j === 0 ? (
-                <th key={j} scope="row">
-                  {cell}
-                </th>
-              ) : (
-                <td key={j}>{cell}</td>
-              ),
-            )}
+    <div className="sr-only">
+      <table>
+        <caption>{caption}</caption>
+        <thead>
+          <tr>
+            {columns.map((c) => (
+              <th key={c} scope="col">
+                {c}
+              </th>
+            ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i}>
+              {row.map((cell, j) =>
+                j === 0 ? (
+                  <th key={j} scope="row">
+                    {cell}
+                  </th>
+                ) : (
+                  <td key={j}>{cell}</td>
+                ),
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
