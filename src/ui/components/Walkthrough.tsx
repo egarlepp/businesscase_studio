@@ -497,8 +497,9 @@ function SetupForm({
         Set up your walkthrough
       </h2>
       <p className="guide-purpose">
-        A few questions decide which pages you need and what to emphasize. You can change them
-        later.
+        Six questions decide which pages you need and what to emphasize. Questions 2, 4, 5 and 6 are
+        the same as Scope on the Profile page, so an answer changed in one place shows in the other.
+        You can change them later.
       </p>
 
       <fieldset>

@@ -65,7 +65,7 @@ import { CHANGELOG, readLastSeenVersion, writeLastSeenVersion } from './data/cha
 import { APP_VERSION } from './version';
 import { getAudience } from './guide/audiences';
 import { stepsFor } from './guide/steps';
-import { loadGuideState, saveGuideState, type GuideState } from './guide/storage';
+import { emptyGuideState, loadGuideState, saveGuideState, type GuideState } from './guide/storage';
 import { AudienceBriefing } from './ui/components/AudienceBriefing';
 import { ModuleNotice, ScopePanel, ScopeReport } from './ui/components/Scope';
 import { isSectionOff, moduleForSection } from './data/scope';
@@ -139,6 +139,8 @@ function App() {
   const fileInput = useRef<HTMLInputElement>(null);
   const [guide, setGuide] = useState<GuideState>(() => loadGuideState(getBrowserStorage()));
   const [guideOpen, setGuideOpen] = useState(false);
+  /** Bumped to remount the walkthrough, dropping any half-filled setup form. */
+  const [guideRun, setGuideRun] = useState(0);
   const audience = guide.answers ? getAudience(guide.answers.audience) : null;
   const navigate = useCallback((next: Section) => setSection(next), []);
   const [hideOffPages, setHideOffPagesState] = useState(() => {
@@ -229,6 +231,9 @@ function App() {
       : 'Clear all data? Every figure is set to zero and every name and assumption is removed, including the copy saved in this browser. Use Save file first if you need to keep it.';
     if (!window.confirm(message)) return;
     workspace.clearAllData();
+    // The walkthrough's answers and progress describe the old case: start them over too.
+    setGuide({ ...emptyGuideState(), introDismissed: true });
+    setGuideRun((n) => n + 1);
     setImportStatus(null);
   };
 
@@ -1271,6 +1276,7 @@ function App() {
         </main>
         {guideOpen && (
           <Walkthrough
+            key={guideRun}
             state={guide}
             onStateChange={setGuide}
             onClose={() => setGuideOpen(false)}

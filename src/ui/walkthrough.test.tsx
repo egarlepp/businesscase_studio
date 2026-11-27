@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import App from '../App';
 import { GUIDE_STORAGE_KEY } from '../guide/storage';
 
@@ -99,5 +99,21 @@ describe('Guided walkthrough', () => {
     const briefing = screen.getByRole('article', { name: 'Audience briefing' });
     expect(within(briefing).getByText('Lead with Conservative.')).toBeInTheDocument();
     expect(within(briefing).getByText(/Is time saved real money/)).toBeInTheDocument();
+  });
+
+  it('starts over when the user clears data, even mid-way through the setup form', async () => {
+    const user = userEvent.setup();
+    await startAsCfo(user);
+    await user.click(guide().getByRole('button', { name: /Done, next/ }));
+    await user.click(guide().getByRole('button', { name: /Audience: CFO \/ Finance/ }));
+    await user.selectOptions(guide().getByLabelText('Who uses it?'), 'customer');
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await user.click(screen.getByRole('button', { name: /Clear data/ }));
+    expect(guide().getByRole('heading', { name: 'Set up your walkthrough' })).toBeInTheDocument();
+    expect(guide().getByRole('radio', { name: 'CFO / Finance' })).not.toBeChecked();
+    expect(guide().getByLabelText('Who uses it?')).toHaveValue('');
+    const stored = JSON.parse(localStorage.getItem(GUIDE_STORAGE_KEY) ?? '{}');
+    expect(stored).toMatchObject({ answers: null, stepId: null, done: [] });
+    vi.restoreAllMocks();
   });
 });
