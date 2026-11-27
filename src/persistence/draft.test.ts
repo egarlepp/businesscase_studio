@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { calculateBusinessCase } from '../calculations/engine';
-import { blankInputs, defaultAssumptions, defaultInputs } from '../data/defaults';
+import { VALUE_CLAIM_KEYS, blankInputs, defaultAssumptions, defaultInputs } from '../data/defaults';
+import { VALUE_TYPES, isClaimed } from '../data/valueTypes';
 import {
   DRAFT_SCHEMA,
   DRAFT_VERSION,
@@ -219,6 +220,25 @@ describe('draft export/import', () => {
       expect(text).toMatch(/predates the build-vs-buy comparison/);
       expect(text).not.toMatch(/left blank:/);
     }
+  });
+
+  it('keeps the original four benefit types claimed for drafts saved before value claims', () => {
+    const legacyInputs: Record<string, unknown> = { ...defaultInputs };
+    for (const key of VALUE_CLAIM_KEYS) delete legacyInputs[key];
+    const parsed = parseDraft({ schema: DRAFT_SCHEMA, version: 1, inputs: legacyInputs });
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    const inputs = parsed.state.inputs;
+    for (const t of VALUE_TYPES) expect(isClaimed(inputs, t.id), t.id).toBe(t.core);
+    expect(inputs.costRetiredSpend).toBe(0);
+    expect(inputs.killCriterion).toBe('');
+    // The legacy case calculates exactly as it did before claims existed.
+    expect(calculateBusinessCase(inputs).totalBenefits).toBeCloseTo(
+      calculateBusinessCase(defaultInputs).totalBenefits,
+    );
+    const text = parsed.warnings.join(' ');
+    expect(text).toMatch(/predates value claims/);
+    expect(text).not.toMatch(/left blank:/);
   });
 
   it('keeps build-vs-buy values from a current draft', () => {

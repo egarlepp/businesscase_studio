@@ -3,6 +3,8 @@ import { getFormula } from '../calculations/formulas';
 import { defaultInputs } from '../data/defaults';
 import { FIELD_GROUPS, fieldLocation } from '../ui/fields';
 import { AUDIENCES, VALUE_LEVERS, getAudience } from './audiences';
+import { MAX_RECOMMENDED_CLAIMS } from './claimReview';
+import { VALUE_TYPES, isValueTypeId } from '../data/valueTypes';
 import { GUIDE_STEPS, stepsFor, type GuideAnswers } from './steps';
 import { GUIDE_STORAGE_KEY, emptyGuideState, loadGuideState, parseGuideState } from './storage';
 
@@ -62,6 +64,43 @@ describe('guide content', () => {
       expect(a.storyline.length).toBeGreaterThan(0);
       expect(a.questions.length).toBeGreaterThan(0);
     }
+  });
+
+  it('recommends real value types and pre-selects no more than three claims', () => {
+    for (const a of AUDIENCES) {
+      expect(a.recommendedClaims.length).toBeGreaterThan(0);
+      for (const id of a.recommendedClaims) expect(isValueTypeId(id), `${a.id}: ${id}`).toBe(true);
+      expect(a.defaultLevers.length).toBeLessThanOrEqual(MAX_RECOMMENDED_CLAIMS);
+      expect(a.claimAdvice).toBeTruthy();
+    }
+    expect(getAudience('cro').recommendedClaims).toEqual(
+      expect.arrayContaining(['cycleTime', 'talent', 'forecast', 'retention']),
+    );
+  });
+
+  it('gives every value type a Benefits panel and every added type a guide step', () => {
+    const panels = (FIELD_GROUPS.Benefits ?? []).map((g) => g.valueType);
+    for (const t of VALUE_TYPES) {
+      expect(panels, t.id).toContain(t.id);
+      if (!t.core)
+        expect(
+          stepsFor(answers({ levers: [t.id] })).some(
+            (s) =>
+              s.section === 'Benefits' &&
+              s.examples.length > 0 &&
+              s.when?.(answers({ levers: [t.id] })) &&
+              !s.when?.(answers({ levers: [] })),
+          ),
+          t.id,
+        ).toBe(true);
+    }
+  });
+
+  it('places each input in one panel only', () => {
+    const keys = Object.values(FIELD_GROUPS).flatMap((groups) =>
+      groups.flatMap((g) => g.fields.map((f) => f.key)),
+    );
+    expect(new Set(keys).size).toBe(keys.length);
   });
 
   it('falls back to the general audience for an unknown id', () => {

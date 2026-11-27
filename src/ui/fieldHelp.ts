@@ -136,6 +136,108 @@ export const FIELD_HELP: Partial<Record<keyof Inputs, FieldHelp>> = {
     search: 'annualized loss expectancy risk reduction',
   },
 
+  // Benefits: additional value types (v0.7.0)
+  costRetiredSpend: {
+    text: 'Annual license, tool, vendor, or contractor spend that stops because of this application. Count only contracts that are actually cancelled.',
+    search: 'hard cost savings vs soft savings',
+  },
+  costMonthsToExit: {
+    text: 'Months from go-live until those contracts end. Nothing is saved before then, so year one counts only the months after it.',
+    search: 'software contract renewal cancellation notice period',
+  },
+  retentionArr: {
+    text: 'Annual recurring revenue from the customers this application touches.',
+    search: 'annual recurring revenue ARR',
+  },
+  retentionLift: {
+    text: 'Expected improvement in net revenue retention, as a share of that ARR. One point (1%) is already a meaningful gain.',
+    search: 'net revenue retention NRR',
+  },
+  retentionAttribution: {
+    text: 'Share of the retention improvement this application earns, as opposed to customer success, product, or pricing.',
+    search: 'revenue attribution business case',
+  },
+  cycleTimeRevenue: {
+    text: 'Annual closed revenue that passes through the process this application speeds up.',
+  },
+  cycleTimeDaysSaved: {
+    text: 'Days removed from the cycle. Only the timing value counts: margin brought forward, priced at the discount rate.',
+    search: 'sales cycle length time value of money',
+  },
+  cashAnnualBilled: {
+    text: 'Annual billed revenue whose invoicing or collection becomes faster.',
+  },
+  cashDaysFaster: {
+    text: 'Days removed from days sales outstanding, billing lag, or quote-to-cash. The benefit is the financing cost of the working capital released.',
+    search: 'days sales outstanding DSO working capital',
+  },
+  reworkHoursMonth: {
+    text: 'Hours per month spent correcting errors today that the application removes. Measure it before claiming it.',
+    search: 'cost of rework measurement',
+  },
+  errorsAvoidedYear: {
+    text: 'Errors, escalations, or credits avoided per year, from a measured baseline.',
+  },
+  costPerError: {
+    text: 'Direct cost of one error: credits, refunds, scrap, or handling time.',
+    search: 'cost of poor quality',
+  },
+  auditPrepHoursYear: {
+    text: 'Hours per year of audit preparation and evidence collection the application saves. Valued at the analyst rate.',
+    search: 'audit readiness evidence collection effort',
+  },
+  auditExternalSavings: {
+    text: 'Annual external audit, consultant, or evidence-tool fees that stop. Avoided fines belong under risk reduction.',
+  },
+  rampHiresYear: {
+    text: 'New hires per year who would reach full productivity sooner with the application.',
+  },
+  rampWeeksSaved: {
+    text: 'Weeks sooner each new hire reaches full productivity. Valued at the loaded hourly rate and realization factor.',
+    search: 'employee ramp time to productivity',
+  },
+  attritionAvoidedYear: {
+    text: 'Regretted departures avoided per year. Finance discounts this heavily unless attrition is already a known problem.',
+    search: 'regretted attrition',
+  },
+  replacementCost: {
+    text: 'Cost of replacing one departure: recruiting, onboarding, and lost output during ramp.',
+    search: 'employee replacement cost',
+  },
+  forecastMissCost: {
+    text: 'What forecast misses cost per year today, for example over-hiring, expediting, or missed targets.',
+    search: 'cost of forecast error',
+  },
+  forecastImprovement: {
+    text: 'Share of that cost the application removes through better accuracy or visibility.',
+  },
+  cxContactsAvoidedYear: {
+    text: 'Support contacts (tickets, calls, chats) avoided per year. Claim churn effects under retention instead.',
+    search: 'customer contact deflection',
+  },
+  cxCostPerContact: {
+    text: 'Fully loaded cost of handling one support contact.',
+    search: 'cost per contact customer support',
+  },
+  techDebtHoursYear: {
+    text: 'Maintenance hours per year spent on integrations, scripts, or shadow IT that this application retires. Valued at the support rate.',
+    search: 'technical debt consolidation savings',
+  },
+  techDebtRetiredSpend: {
+    text: 'Annual hosting or license spend on the tools that are switched off. List each retired tool here or under hard cost reduction, not both.',
+  },
+  strategicAnnualValue: {
+    text: 'A stated annual value for strategic optionality, such as a reusable platform or data asset. Reported beside the case and never added to ROI.',
+    search: 'real options strategic value IT investment',
+  },
+  pilotSuccessThreshold: {
+    text: 'The measurable result a pilot must reach for the initiative to continue, tied to the lead claim.',
+    search: 'pilot success criteria',
+  },
+  killCriterion: {
+    text: 'The result that stops the initiative. Reviewers trust a stated kill criterion more than a big headline number.',
+    search: 'kill criteria project stage gate',
+  },
   // TCO
   initialLaborHours: {
     text: 'Hours to build the application itself, excluding the activities listed below.',

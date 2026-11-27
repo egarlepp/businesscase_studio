@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { getFormula } from '../../calculations/formulas';
 import { AUDIENCES, VALUE_LEVERS, getAudience, type ValueLever } from '../../guide/audiences';
+import { getValueType, isClaimed } from '../../data/valueTypes';
 import {
   ANSWER_OPTIONS,
   STAGE_OPTIONS,
@@ -37,6 +38,10 @@ interface WalkthroughProps {
   results: Results;
   fmt: Formatters;
   onApply: (key: keyof Inputs, value: string | number) => void;
+  /** Claims the value types chosen in the setup questions (never unclaims others). */
+  onClaim: (ids: ValueLever[]) => void;
+  /** Model and claim guardrails currently raised; shown on the review step. */
+  guardrailCount: number;
 }
 
 /** Formats a value the way its input field shows it. */
@@ -81,6 +86,8 @@ export function Walkthrough({
   results,
   fmt,
   onApply,
+  onClaim,
+  guardrailCount,
 }: WalkthroughProps) {
   const [editingAnswers, setEditingAnswers] = useState(state.answers === null);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -143,6 +150,7 @@ export function Walkthrough({
           headingRef={headingRef}
           onCancel={answers ? () => setEditingAnswers(false) : undefined}
           onSubmit={(next) => {
+            onClaim(next.levers);
             const nextSteps = stepsFor(next);
             const keep = nextSteps.some((s) => s.id === state.stepId);
             onStateChange({
@@ -223,12 +231,27 @@ export function Walkthrough({
                     ) : null;
                   })}
                 </dl>
-                {results.warnings.length > 0 && (
+                {guardrailCount > 0 && (
                   <p className="guide-note">
-                    {results.warnings.length} guardrail warning
-                    {results.warnings.length === 1 ? '' : 's'} on this page to resolve.
+                    {guardrailCount} guardrail warning
+                    {guardrailCount === 1 ? '' : 's'} on this page to resolve.
                   </p>
                 )}
+              </section>
+            )}
+
+            {step.id === 'benefits-claims' && (
+              <section aria-label={`Claims for ${audience.title}`}>
+                <h3>What lands with {audience.title}</h3>
+                <p className="guide-note">{audience.claimAdvice}</p>
+                <ol className="guide-list">
+                  {audience.recommendedClaims.map((id) => (
+                    <li key={id}>
+                      {getValueType(id).label}{' '}
+                      <small>({isClaimed(inputs, id) ? 'claimed' : 'not claimed'})</small>
+                    </li>
+                  ))}
+                </ol>
               </section>
             )}
 
@@ -408,6 +431,26 @@ function SetupForm({
   };
 
   const selected = getAudience(draft.audience);
+  const recommendedLevers = selected.recommendedClaims.map((id) =>
+    VALUE_LEVERS.find((l) => l.id === id)!,
+  );
+  const otherLevers = VALUE_LEVERS.filter((l) => !selected.recommendedClaims.includes(l.id));
+  const leverOption = (l: (typeof VALUE_LEVERS)[number]) => (
+    <label key={l.id} className="option-row">
+      <input
+        type="checkbox"
+        checked={draft.levers.includes(l.id)}
+        onChange={() => toggleLever(l.id)}
+      />
+      <span>
+        {l.label}
+        {selected.recommendedClaims.includes(l.id) && (
+          <span className="claim-badge">For {selected.title}</span>
+        )}
+        <small>{l.hint}</small>
+      </span>
+    </label>
+  );
 
   return (
     <form
@@ -467,19 +510,18 @@ function SetupForm({
 
       <fieldset>
         <legend>3. Which kinds of value will you claim?</legend>
-        {VALUE_LEVERS.map((l) => (
-          <label key={l.id} className="option-row">
-            <input
-              type="checkbox"
-              checked={draft.levers.includes(l.id)}
-              onChange={() => toggleLever(l.id)}
-            />
-            <span>
-              {l.label}
-              <small>{l.hint}</small>
-            </span>
-          </label>
-        ))}
+        <p className="guide-purpose">
+          Pick one hard claim and one or two supporting claims. Marked types land with{' '}
+          {selected.title}.
+        </p>
+        {recommendedLevers.map(leverOption)}
+        <details
+          className="more-levers"
+          open={otherLevers.some((l) => draft.levers.includes(l.id))}
+        >
+          <summary>More value types ({otherLevers.length})</summary>
+          {otherLevers.map(leverOption)}
+        </details>
         {draft.levers.length === 0 && (
           <p className="guide-note" role="alert">
             Choose at least one; a business case needs a benefit.

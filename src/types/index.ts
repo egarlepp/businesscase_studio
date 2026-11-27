@@ -1,7 +1,9 @@
+import type { ValueClaimInputs, ValueTypeId, EvidenceClass } from '../data/valueTypes';
+
 export type ScenarioName = 'Conservative' | 'Expected' | 'Upside';
 export type Confidence = 'Measured' | 'Validated' | 'Estimated' | 'Proxy' | 'Speculative';
 
-export interface Inputs {
+export interface Inputs extends ValueClaimInputs {
   applicationName: string;
   sponsor: string;
   department: string;
@@ -40,6 +42,47 @@ export interface Inputs {
   riskExposure: number;
   riskProbability: number;
   riskReduction: number;
+  // Additional value types (v0.6.0). Each counts only while its claim flag is set.
+  /** Annual license, tool, vendor, or contractor spend that stops. */
+  costRetiredSpend: number;
+  /** Months from go-live until the contracts end; no saving is counted before then. */
+  costMonthsToExit: number;
+  /** Annual recurring revenue in scope for retention and expansion. */
+  retentionArr: number;
+  /** Improvement in net revenue retention, as a share of ARR (0.01 = one point). */
+  retentionLift: number;
+  /** Share of the retention improvement this application earns. */
+  retentionAttribution: number;
+  /** Annual closed revenue that passes through the faster process. */
+  cycleTimeRevenue: number;
+  cycleTimeDaysSaved: number;
+  /** Annual billed revenue whose collection speeds up. */
+  cashAnnualBilled: number;
+  /** Days removed from DSO, billing lag, or quote-to-cash. */
+  cashDaysFaster: number;
+  reworkHoursMonth: number;
+  errorsAvoidedYear: number;
+  costPerError: number;
+  auditPrepHoursYear: number;
+  /** Annual external audit, consultant, or evidence-tool fees that stop. */
+  auditExternalSavings: number;
+  rampHiresYear: number;
+  rampWeeksSaved: number;
+  attritionAvoidedYear: number;
+  replacementCost: number;
+  /** Annual cost of forecast misses today: over-hiring, expediting, missed targets. */
+  forecastMissCost: number;
+  forecastImprovement: number;
+  cxContactsAvoidedYear: number;
+  cxCostPerContact: number;
+  techDebtHoursYear: number;
+  techDebtRetiredSpend: number;
+  /** Illustrative annual strategic value. Reported, never added to benefits. */
+  strategicAnnualValue: number;
+  /** What a pilot must show to continue. */
+  pilotSuccessThreshold: string;
+  /** The result that stops the initiative. */
+  killCriterion: string;
   initialLaborHours: number;
   initialLaborRate: number;
   discoveryHours: number;
@@ -131,6 +174,32 @@ export interface BenefitBreakdown {
   winRate: number;
   opportunityCoverage: number;
   riskReduction: number;
+  costReduction: number;
+  retention: number;
+  cycleTime: number;
+  cashAcceleration: number;
+  quality: number;
+  compliance: number;
+  talent: number;
+  forecast: number;
+  customerExperience: number;
+  techDebt: number;
+}
+
+/** Year-one value of one claimed value type. */
+export interface ClaimResult {
+  id: ValueTypeId;
+  evidence: EvidenceClass;
+  /** Year-one recurring value plus any one-time value (hiring deferral). */
+  value: number;
+  countsTowardRoi: boolean;
+}
+
+/** Year-one value by evidence class, for claims that count toward ROI. */
+export interface EvidenceBreakdown {
+  hard: number;
+  semiHard: number;
+  soft: number;
 }
 
 /** One-time benefits, totaled over the evaluation horizon. */
@@ -171,6 +240,18 @@ export interface Results {
   /** Heuristic reserve rate derived from the technical-health score (not applied automatically). */
   suggestedTechnicalDebtReserveRate: number;
   confidenceScore: number;
+  /** Claimed value types, in catalog order. Unclaimed types are omitted. */
+  claims: ClaimResult[];
+  evidenceBreakdown: EvidenceBreakdown;
+  /** (Hard + semi-hard) ÷ all claimed year-one value; null when nothing is claimed. */
+  evidenceBackedShare: number | null;
+  /** NPV and ROI with soft claims removed: the case Finance will underwrite. */
+  evidenceBackedNpv: number;
+  evidenceBackedRoi: number;
+  /** Strategic optionality: reported beside the case, never in totals. */
+  strategicValue: number;
+  /** One-time working capital released by cash acceleration. Balance sheet, not benefit. */
+  workingCapitalReleased: number;
   /** Recurring benefits for year one. */
   benefitBreakdown: BenefitBreakdown;
   oneTimeBenefitBreakdown: OneTimeBenefitBreakdown;

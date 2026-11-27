@@ -368,6 +368,19 @@ describe('Workspace: blank start and demo mode', () => {
     expect(screen.getByText(/has no benefits or costs yet/)).toBeInTheDocument();
   });
 
+  it('shows a value type’s panel only once it is claimed', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: /Start blank/ }));
+    await goTo(user, 'Benefits');
+    expect(screen.queryByLabelText('Annual spend retired')).toBeNull();
+    expect(screen.getByText(/No value type is claimed/)).toBeInTheDocument();
+    await user.click(screen.getByRole('checkbox', { name: /Hard cost reduction/ }));
+    expect(screen.getByLabelText('Annual spend retired')).toBeInTheDocument();
+    expect(screen.getByLabelText('Evidence class')).toHaveValue('hard');
+    expect(screen.getByText(/No baseline source for Hard cost reduction/)).toBeInTheDocument();
+  });
+
   it('opens a page from the blank-case steps', async () => {
     const user = userEvent.setup();
     render(<App />);
