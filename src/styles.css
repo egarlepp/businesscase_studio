@@ -2078,3 +2078,15 @@ tbody th {
   font-size: 13px;
   font-weight: 600;
 }
+.older-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 14px 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.older-toggle:hover {
+  text-decoration: underline;
+}

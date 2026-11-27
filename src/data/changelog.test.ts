@@ -3,6 +3,8 @@ import { APP_VERSION } from '../version';
 import {
   CHANGELOG,
   LAST_SEEN_VERSION_KEY,
+  MAX_CHANGELOG_ENTRIES,
+  RECENT_RELEASES_SHOWN,
   readLastSeenVersion,
   writeLastSeenVersion,
 } from './changelog';
@@ -13,6 +15,11 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 describe('CHANGELOG', () => {
   it('starts with the current app version', () => {
     expect(CHANGELOG[0]?.version).toBe(APP_VERSION);
+  });
+
+  it(`keeps at most ${MAX_CHANGELOG_ENTRIES} releases`, () => {
+    expect(CHANGELOG.length).toBeLessThanOrEqual(MAX_CHANGELOG_ENTRIES);
+    expect(RECENT_RELEASES_SHOWN).toBeLessThanOrEqual(MAX_CHANGELOG_ENTRIES);
   });
 
   it('has well-formed, unique, newest-first entries', () => {

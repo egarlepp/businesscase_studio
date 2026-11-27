@@ -48,6 +48,8 @@ npm run check
 - **Releases need notes.** When you bump `version` in `package.json`, update `APP_VERSION` in
   `src/version.ts` and add an entry at the top of `src/data/changelog.ts`. The "What's new" dialog
   reads it, and `changelog.test.ts` fails if the newest entry does not match the app version.
+  The changelog keeps only the five most recent releases (`MAX_CHANGELOG_ENTRIES`), so delete the
+  oldest entry when you add one.
 - **Formatting** is enforced by Prettier; run `npm run format` before committing.
 - **Dependency overrides.** `package.json` forces `minimatch` to `^11.0.1` to patch a
   denial-of-service advisory (GHSA-g3hv-75wg-m249) that ESLint and typescript-eslint still pull in

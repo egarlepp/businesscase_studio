@@ -1,11 +1,13 @@
-import { useEffect, useId, useRef, type KeyboardEvent } from 'react';
-import { Sparkles, X } from 'lucide-react';
-import type { Release } from '../../data/changelog';
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import { ChevronDown, ChevronUp, Sparkles, X } from 'lucide-react';
+import { RECENT_RELEASES_SHOWN, type Release } from '../../data/changelog';
 
 interface WhatsNewDialogProps {
   releases: readonly Release[];
   currentVersion: string;
   onClose: () => void;
+  /** How many of the newest releases show before the "Show older releases" toggle. */
+  recentCount?: number;
 }
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
@@ -22,9 +24,22 @@ function formatReleaseDate(isoDate: string): string {
 
 const FOCUSABLE = 'button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
 
-/** Modal listing release notes, newest first. Closes on Escape, backdrop click, or the close button. */
-export function WhatsNewDialog({ releases, currentVersion, onClose }: WhatsNewDialogProps) {
+/**
+ * Modal listing release notes, newest first. Shows the newest `recentCount` releases and puts the
+ * rest behind a toggle. Closes on Escape, backdrop click, or the close button.
+ */
+export function WhatsNewDialog({
+  releases,
+  currentVersion,
+  onClose,
+  recentCount = RECENT_RELEASES_SHOWN,
+}: WhatsNewDialogProps) {
   const titleId = useId();
+  const olderId = useId();
+  const [showOlder, setShowOlder] = useState(false);
+  const shownCount = Math.max(1, Math.floor(recentCount));
+  const recent = releases.slice(0, shownCount);
+  const older = releases.slice(shownCount);
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -53,6 +68,22 @@ export function WhatsNewDialog({ releases, currentVersion, onClose }: WhatsNewDi
       first.focus();
     }
   };
+
+  const renderRelease = (release: Release) => (
+    <section key={release.version} className="release" aria-label={`Version ${release.version}`}>
+      <div className="release-heading">
+        <span className="version-pill static">v{release.version}</span>
+        {release.version === currentVersion && <span className="release-current">Current</span>}
+        <time dateTime={release.date}>{formatReleaseDate(release.date)}</time>
+      </div>
+      <h3>{release.title}</h3>
+      <ul>
+        {release.changes.map((change) => (
+          <li key={change}>{change}</li>
+        ))}
+      </ul>
+    </section>
+  );
 
   return (
     <div
@@ -83,27 +114,32 @@ export function WhatsNewDialog({ releases, currentVersion, onClose }: WhatsNewDi
           </button>
         </header>
         <div className="modal-body" tabIndex={0} aria-label="Release notes">
-          {releases.map((release) => (
-            <section
-              key={release.version}
-              className="release"
-              aria-label={`Version ${release.version}`}
-            >
-              <div className="release-heading">
-                <span className="version-pill static">v{release.version}</span>
-                {release.version === currentVersion && (
-                  <span className="release-current">Current</span>
+          {recent.map(renderRelease)}
+          {older.length > 0 && (
+            <>
+              <button
+                type="button"
+                className="link-button older-toggle"
+                aria-expanded={showOlder}
+                aria-controls={olderId}
+                onClick={() => setShowOlder((open) => !open)}
+              >
+                {showOlder ? (
+                  <>
+                    Hide older releases <ChevronUp size={14} aria-hidden="true" />
+                  </>
+                ) : (
+                  <>
+                    Show older releases ({older.length}){' '}
+                    <ChevronDown size={14} aria-hidden="true" />
+                  </>
                 )}
-                <time dateTime={release.date}>{formatReleaseDate(release.date)}</time>
+              </button>
+              <div id={olderId} hidden={!showOlder}>
+                {showOlder && older.map(renderRelease)}
               </div>
-              <h3>{release.title}</h3>
-              <ul>
-                {release.changes.map((change) => (
-                  <li key={change}>{change}</li>
-                ))}
-              </ul>
-            </section>
-          ))}
+            </>
+          )}
         </div>
       </div>
     </div>
