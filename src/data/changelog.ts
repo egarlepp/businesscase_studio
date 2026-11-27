@@ -29,6 +29,14 @@ export const CHANGELOG: readonly Release[] = [
     ],
   },
   {
+    version: '0.7.1',
+    date: '2026-11-27',
+    title: 'Page no longer scrolls past the end',
+    changes: [
+      'Pages with charts, such as Overview, no longer scroll into a blank area below the content, and the sidebar now reaches the bottom of the window.',
+    ],
+  },
+  {
     version: '0.7.0',
     date: '2026-11-27',
     title: 'More value types and claim review',
