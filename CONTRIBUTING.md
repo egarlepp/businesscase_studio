@@ -29,9 +29,10 @@ npm run check
 - **Keep the formula registry in sync.** `src/calculations/formulas.ts` powers the in-app
   explanations. `formulas.test.ts` fails if a listed input does not affect a result, or if a leaf
   formula depends on an input it does not list. Update the registry alongside the engine.
-- **New inputs need a UI location.** Add every new `Inputs` field to `src/ui/fields.ts` and to
-  `defaultInputs`. Saved drafts fill missing fields from the defaults, so additive changes need no
-  migration. Renaming or removing a field requires bumping `DRAFT_VERSION` in
+- **New inputs need a UI location and help text.** Add every new `Inputs` field to
+  `src/ui/fields.ts`, to `defaultInputs`, and to `FIELD_HELP` in `src/ui/fieldHelp.ts` (the info
+  tooltip beside its label; `explainers.test.ts` fails if a field has no help). Saved drafts fill
+  missing fields from the defaults, so additive changes need no migration. Renaming or removing a field requires bumping `DRAFT_VERSION` in
   `src/persistence/draft.ts` and adding a migration.
 - **UI changes need UI tests.** Add or update tests in `src/App.test.tsx`, and keep controls
   keyboard-accessible with an accessible name.
@@ -44,12 +45,17 @@ npm run check
 - **Screenshots** live in `docs/screenshots` and are shown in filename order, with the caption taken
   from the filename: `03-build-vs-buy.png` is captioned "Build vs buy" (number dropped, dashes become
   spaces). Use two-digit prefixes (`01-`, not `1-`) so `10-` sorts after `09-`, and capture them in
-  demo mode.
+  demo mode. Retake them when a change alters what they show (the header, navigation, or a pictured
+  page), so they match the current release.
 - **Releases need notes.** When you bump `version` in `package.json`, update `APP_VERSION` in
   `src/version.ts` and add an entry at the top of `src/data/changelog.ts`. The "What's new" dialog
   reads it, and `changelog.test.ts` fails if the newest entry does not match the app version.
   The changelog keeps only the five most recent releases (`MAX_CHANGELOG_ENTRIES`), so delete the
   oldest entry when you add one.
+- **The briefing pack must not calculate.** `src/export/briefingPack.ts` formats every figure from
+  the engine's results so the AI assistant can quote it. If you add a figure to the pack, take it
+  from `calculateBusinessCase` or the formula registry rather than computing it in the export, and
+  keep the prompt's rules for numbers intact.
 - **Formatting** is enforced by Prettier; run `npm run format` before committing.
 - **Dependency overrides.** `package.json` forces `minimatch` to `^11.0.1` to patch a
   denial-of-service advisory (GHSA-g3hv-75wg-m249) that ESLint and typescript-eslint still pull in
