@@ -8,13 +8,15 @@ interface FieldProps {
   value: string | number;
   fmt: Formatters;
   onChange: (key: keyof Inputs, value: string | number) => void;
+  /** Marks the field as one the guided walkthrough is pointing at. */
+  highlight?: boolean;
 }
 
 /** A labelled input for one `Inputs` key. Percent values are stored as fractions (0.75). */
-export function Field({ def, value, fmt, onChange }: FieldProps) {
+export function Field({ def, value, fmt, onChange, highlight = false }: FieldProps) {
   const id = `field-${def.key}`;
   return (
-    <div className="field">
+    <div className={highlight ? 'field guided' : 'field'}>
       <label htmlFor={id}>{def.label}</label>
       <FieldControl id={id} def={def} value={value} fmt={fmt} onChange={onChange} />
     </div>

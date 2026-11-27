@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import {
   AlertTriangle,
   BarChart3,
@@ -9,6 +9,7 @@ import {
   ChevronRight,
   CircleDollarSign,
   ClipboardList,
+  Compass,
   Download,
   FileSpreadsheet,
   FileText,
@@ -69,6 +70,11 @@ import { formatFormulaValue } from './ui/display';
 import { FIELD_GROUPS, type Section } from './ui/fields';
 import { createFormatters } from './ui/format';
 import { APP_VERSION } from './version';
+import { getAudience } from './guide/audiences';
+import { loadGuideState, saveGuideState, type GuideState } from './guide/storage';
+import { AudienceBriefing } from './ui/components/AudienceBriefing';
+import { Walkthrough } from './ui/components/Walkthrough';
+import { stepsFor } from './guide/steps';
 
 const SECTIONS: Array<[Section, LucideIcon]> = [
   ['Overview', BarChart3],
@@ -105,6 +111,10 @@ function App() {
   const [canPersist] = useState(() => saveStoredDraft(getBrowserStorage(), initial));
   const [importStatus, setImportStatus] = useState<ImportStatus>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const [guide, setGuide] = useState<GuideState>(() => loadGuideState(getBrowserStorage()));
+  const [guideOpen, setGuideOpen] = useState(false);
+  const audience = guide.answers ? getAudience(guide.answers.audience) : null;
+  const navigate = useCallback((next: Section) => setSection(next), []);
 
   const fmt = useMemo(() => createFormatters(base.currency), [base.currency]);
   const modeled = useMemo(() => applyScenario(base, scenario), [base, scenario]);
@@ -125,6 +135,15 @@ function App() {
       }),
     [base],
   );
+
+  useEffect(() => {
+    saveGuideState(getBrowserStorage(), guide);
+  }, [guide]);
+
+  const openGuide = (editAnswers = false) => {
+    if (editAnswers && guide.answers) setGuide((g) => ({ ...g, answers: null }));
+    setGuideOpen(true);
+  };
 
   useEffect(() => {
     if (canPersist) saveStoredDraft(getBrowserStorage(), { inputs: base, scenario, assumptions });
@@ -267,9 +286,16 @@ function App() {
   );
 
   const groups = FIELD_GROUPS[section];
+  const guideHighlights = new Set<keyof Inputs>(
+    guideOpen && guide.answers
+      ? (stepsFor(guide.answers)
+          .find((s) => s.id === guide.stepId)
+          ?.examples.map((e) => e.key) ?? [])
+      : [],
+  );
 
   return (
-    <div className="app-shell">
+    <div className={guideOpen ? 'app-shell guide-open' : 'app-shell'}>
       <a className="skip-link" href="#main">
         Skip to content
       </a>
@@ -296,7 +322,13 @@ function App() {
             >
               <Icon size={18} />
               <span>{name}</span>
-              <ChevronRight size={16} />
+              {audience?.focusSections.includes(name) ? (
+                <span className="focus-dot" title={`Key page for ${audience.title}`}>
+                  <span className="sr-only">Key page for {audience.title}</span>
+                </span>
+              ) : (
+                <ChevronRight size={16} />
+              )}
             </button>
           ))}
         </nav>
@@ -329,6 +361,15 @@ function App() {
                 </button>
               ))}
             </div>
+            <button
+              type="button"
+              className={guideOpen ? 'reset guide-toggle active' : 'reset guide-toggle'}
+              aria-pressed={guideOpen}
+              onClick={() => (guideOpen ? setGuideOpen(false) : openGuide())}
+            >
+              <Compass size={16} />
+              Guide
+            </button>
             <button type="button" className="reset" onClick={resetAll}>
               <RefreshCw size={16} />
               Reset
@@ -338,6 +379,32 @@ function App() {
             </span>
           </div>
         </header>
+
+        {section === 'Overview' && !guide.answers && !guide.introDismissed && !guideOpen && (
+          <section className="guide-intro no-print" aria-label="Getting started">
+            <Compass size={26} />
+            <div>
+              <h2>New here? Take the guided walkthrough.</h2>
+              <p>
+                Answer five questions about your audience and initiative. The guide then takes you
+                page by page, explains each step, and shows example numbers you can use or replace.
+                Reopen it any time from the Guide button.
+              </p>
+            </div>
+            <div className="button-row">
+              <button type="button" className="primary" onClick={() => openGuide()}>
+                Start walkthrough
+              </button>
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setGuide((g) => ({ ...g, introDismissed: true }))}
+              >
+                Not now
+              </button>
+            </div>
+          </section>
+        )}
 
         {section === 'Overview' && (
           <>
@@ -530,6 +597,7 @@ function App() {
                     <Field
                       key={def.key}
                       def={def}
+                      highlight={guideHighlights.has(def.key)}
                       value={base[def.key]}
                       fmt={fmt}
                       onChange={update}
@@ -840,6 +908,15 @@ function App() {
                 )}
               </div>
             </article>
+            {audience && (
+              <AudienceBriefing
+                audience={audience}
+                scenario={scenario}
+                results={r}
+                fmt={fmt}
+                onChangeAudience={() => openGuide(true)}
+              />
+            )}
             <article className="panel">
               <h2>Key metrics</h2>
               <dl className="score-list">
@@ -950,6 +1027,18 @@ function App() {
           this browser.
         </footer>
       </main>
+      {guideOpen && (
+        <Walkthrough
+          state={guide}
+          onStateChange={setGuide}
+          onClose={() => setGuideOpen(false)}
+          onNavigate={navigate}
+          inputs={base}
+          results={r}
+          fmt={fmt}
+          onApply={update}
+        />
+      )}
     </div>
   );
 }
