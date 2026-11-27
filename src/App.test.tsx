@@ -280,7 +280,7 @@ describe('Workspace: blank start and demo mode', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Untitled business case');
     expect(
-      screen.getByRole('heading', { name: 'This business case is blank' }),
+      screen.getByRole('heading', { name: 'Add figures to build your business case' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('switch', { name: 'Demo data' })).toHaveAttribute(
       'aria-checked',

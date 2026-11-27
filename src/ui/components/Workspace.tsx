@@ -61,15 +61,15 @@ const FIRST_STEPS: Array<{ section: Section; title: string; detail: string }> = 
   },
 ];
 
-/** Shown on the Overview while the case has no names, figures, or assumptions. */
+/** Shown on the Overview while the case has no benefits or costs. */
 export function OverviewEmptyState({ onNavigate }: { onNavigate: (section: Section) => void }) {
   const { enterDemo } = useWorkspace();
   return (
     <section className="panel empty-state" aria-labelledby="empty-state-title">
-      <h2 id="empty-state-title">This business case is blank</h2>
+      <h2 id="empty-state-title">Add figures to build your business case</h2>
       <p className="body-copy">
-        Every figure is zero, so the metrics and charts below stay empty until you add data. Work
-        through these pages in order; the Overview updates as you type.
+        No benefits or costs are entered yet, so the charts are hidden and the metrics read zero.
+        Work through these pages in order; the Overview fills in as you type.
       </p>
       <ol className="empty-steps">
         {FIRST_STEPS.map((step, index) => (
@@ -92,7 +92,7 @@ export function OverviewEmptyState({ onNavigate }: { onNavigate: (section: Secti
         <button type="button" className="link-button" onClick={enterDemo}>
           Explore the demo data
         </button>
-        . Your blank case is kept and comes back when you turn demo data off.
+        . Your own case is kept and comes back when you turn demo data off.
       </p>
     </section>
   );

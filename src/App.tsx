@@ -341,7 +341,7 @@ function App() {
 
           {section === 'Overview' && (
             <>
-              {workspace.isBlank && <OverviewEmptyState onNavigate={setSection} />}
+              {!hasFigures && <OverviewEmptyState onNavigate={setSection} />}
               <section className="metric-grid" aria-label="Key metrics">
                 {metricCard(
                   'roi',
@@ -369,134 +369,140 @@ function App() {
                   `${r.benefitCostRatio.toFixed(2)}× benefit-cost ratio`,
                 )}
               </section>
-              <section className="dashboard-grid">
-                <article className="panel chart-panel">
-                  <div className="panel-heading">
-                    <div>
-                      <h2>Cumulative business value</h2>
-                      <p>Annual modeled benefits and ownership costs.</p>
-                    </div>
-                  </div>
-                  <div className="chart" aria-hidden="true">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={cash}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="label" />
-                        <YAxis tickFormatter={fmt.moneyCompact} width={70} />
-                        <Tooltip formatter={(v) => fmt.money(Number(v))} />
-                        <Legend />
-                        <Area
-                          isAnimationActive={false}
-                          type="monotone"
-                          dataKey="benefits"
-                          name="Benefits"
-                          stroke={CHART_COLORS.benefits}
-                          fill={CHART_COLORS.benefits}
-                          fillOpacity={0.2}
-                        />
-                        <Area
-                          isAnimationActive={false}
-                          type="monotone"
-                          dataKey="costs"
-                          name="Costs"
-                          stroke={CHART_COLORS.costs}
-                          fill={CHART_COLORS.costs}
-                          fillOpacity={0.12}
-                        />
-                        <Area
-                          isAnimationActive={false}
-                          type="monotone"
-                          dataKey="cumulativeNet"
-                          name="Cumulative net"
-                          stroke={CHART_COLORS.net}
-                          fill={CHART_COLORS.net}
-                          fillOpacity={0.08}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <ChartTable
-                    caption="Annual benefits, costs, and cumulative net value"
-                    columns={['Year', 'Benefits', 'Costs', 'Cumulative net']}
-                    rows={cash.map((y) => [
-                      y.label,
-                      fmt.money(y.benefits),
-                      fmt.money(y.costs),
-                      fmt.money(y.cumulativeNet),
-                    ])}
-                  />
-                </article>
-                <article className="panel">
-                  <div className="panel-heading">
-                    <div>
-                      <h2>Business-case quality</h2>
-                      <p>Decision-readiness indicators.</p>
-                    </div>
-                  </div>
-                  <dl className="score-list">
-                    <div>
-                      <dt>Model confidence</dt>
-                      <dd>{r.confidenceScore}%</dd>
-                    </div>
-                    <div>
-                      <dt>Technical health</dt>
-                      <dd>{r.technicalHealthScore.toFixed(0)}/100</dd>
-                    </div>
-                    <div>
-                      <dt>Technical risk</dt>
-                      <dd>{r.technicalRisk}</dd>
-                    </div>
-                    <div>
-                      <dt>Recovered capacity</dt>
-                      <dd>{r.equivalentFte.toFixed(2)} FTE</dd>
-                    </div>
-                    <div>
-                      <dt>One-time hiring deferral</dt>
-                      <dd>{fmt.money(r.oneTimeBenefitBreakdown.hiringDeferral)}</dd>
-                    </div>
-                  </dl>
-                </article>
-              </section>
-              <section className="dashboard-grid">
-                <article className="panel">
-                  <div className="panel-heading">
-                    <div>
-                      <h2>Recurring annual benefit mix</h2>
-                      <p>Year-one recurring value. One-time hiring deferral is shown separately.</p>
-                    </div>
-                  </div>
-                  <div className="chart small" aria-hidden="true">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={benefitMix} layout="vertical">
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                        <XAxis type="number" tickFormatter={fmt.moneyCompact} />
-                        <YAxis type="category" dataKey="name" width={140} />
-                        <Tooltip formatter={(v) => fmt.money(Number(v))} />
-                        <Bar
-                          isAnimationActive={false}
-                          dataKey="value"
-                          name="Annual value"
-                          fill={CHART_COLORS.bar}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <ChartTable
-                    caption="Recurring annual benefit mix"
-                    columns={['Benefit', 'Annual value']}
-                    rows={benefitMix.map((b) => [b.name, fmt.money(b.value)])}
-                  />
-                </article>
-                <article className="panel">
-                  <div className="panel-heading">
-                    <div>
-                      <h2>Guardrails</h2>
-                      <p>Items requiring evidence or review.</p>
-                    </div>
-                  </div>
-                  {warningList}
-                </article>
-              </section>
+              {hasFigures && (
+                <>
+                  <section className="dashboard-grid">
+                    <article className="panel chart-panel">
+                      <div className="panel-heading">
+                        <div>
+                          <h2>Cumulative business value</h2>
+                          <p>Annual modeled benefits and ownership costs.</p>
+                        </div>
+                      </div>
+                      <div className="chart" aria-hidden="true">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={cash}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <XAxis dataKey="label" />
+                            <YAxis tickFormatter={fmt.moneyCompact} width={70} />
+                            <Tooltip formatter={(v) => fmt.money(Number(v))} />
+                            <Legend />
+                            <Area
+                              isAnimationActive={false}
+                              type="monotone"
+                              dataKey="benefits"
+                              name="Benefits"
+                              stroke={CHART_COLORS.benefits}
+                              fill={CHART_COLORS.benefits}
+                              fillOpacity={0.2}
+                            />
+                            <Area
+                              isAnimationActive={false}
+                              type="monotone"
+                              dataKey="costs"
+                              name="Costs"
+                              stroke={CHART_COLORS.costs}
+                              fill={CHART_COLORS.costs}
+                              fillOpacity={0.12}
+                            />
+                            <Area
+                              isAnimationActive={false}
+                              type="monotone"
+                              dataKey="cumulativeNet"
+                              name="Cumulative net"
+                              stroke={CHART_COLORS.net}
+                              fill={CHART_COLORS.net}
+                              fillOpacity={0.08}
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <ChartTable
+                        caption="Annual benefits, costs, and cumulative net value"
+                        columns={['Year', 'Benefits', 'Costs', 'Cumulative net']}
+                        rows={cash.map((y) => [
+                          y.label,
+                          fmt.money(y.benefits),
+                          fmt.money(y.costs),
+                          fmt.money(y.cumulativeNet),
+                        ])}
+                      />
+                    </article>
+                    <article className="panel">
+                      <div className="panel-heading">
+                        <div>
+                          <h2>Business-case quality</h2>
+                          <p>Decision-readiness indicators.</p>
+                        </div>
+                      </div>
+                      <dl className="score-list">
+                        <div>
+                          <dt>Model confidence</dt>
+                          <dd>{r.confidenceScore}%</dd>
+                        </div>
+                        <div>
+                          <dt>Technical health</dt>
+                          <dd>{r.technicalHealthScore.toFixed(0)}/100</dd>
+                        </div>
+                        <div>
+                          <dt>Technical risk</dt>
+                          <dd>{r.technicalRisk}</dd>
+                        </div>
+                        <div>
+                          <dt>Recovered capacity</dt>
+                          <dd>{r.equivalentFte.toFixed(2)} FTE</dd>
+                        </div>
+                        <div>
+                          <dt>One-time hiring deferral</dt>
+                          <dd>{fmt.money(r.oneTimeBenefitBreakdown.hiringDeferral)}</dd>
+                        </div>
+                      </dl>
+                    </article>
+                  </section>
+                  <section className="dashboard-grid">
+                    <article className="panel">
+                      <div className="panel-heading">
+                        <div>
+                          <h2>Recurring annual benefit mix</h2>
+                          <p>
+                            Year-one recurring value. One-time hiring deferral is shown separately.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="chart small" aria-hidden="true">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={benefitMix} layout="vertical">
+                            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                            <XAxis type="number" tickFormatter={fmt.moneyCompact} />
+                            <YAxis type="category" dataKey="name" width={140} />
+                            <Tooltip formatter={(v) => fmt.money(Number(v))} />
+                            <Bar
+                              isAnimationActive={false}
+                              dataKey="value"
+                              name="Annual value"
+                              fill={CHART_COLORS.bar}
+                            />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <ChartTable
+                        caption="Recurring annual benefit mix"
+                        columns={['Benefit', 'Annual value']}
+                        rows={benefitMix.map((b) => [b.name, fmt.money(b.value)])}
+                      />
+                    </article>
+                    <article className="panel">
+                      <div className="panel-heading">
+                        <div>
+                          <h2>Guardrails</h2>
+                          <p>Items requiring evidence or review.</p>
+                        </div>
+                      </div>
+                      {warningList}
+                    </article>
+                  </section>
+                </>
+              )}
             </>
           )}
 

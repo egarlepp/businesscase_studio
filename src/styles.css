@@ -945,8 +945,7 @@ tbody th {
   border-radius: 10px;
   background: #f7f8fb;
 }
-.empty-steps strong,
-.empty-steps span {
+.empty-steps div > * {
   display: block;
 }
 .empty-steps div span {
