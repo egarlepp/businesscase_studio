@@ -28,10 +28,10 @@
     "check": "npm run format:check && npm run lint && npm test && npm run build"
   },
   "dependencies": {
-    "lucide-react": "^1.72.0",
+    "lucide-react": "^1.77.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "recharts": "^3.10.1"
+    "recharts": "^3.11.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
