@@ -1,7 +1,7 @@
 {
   "name": "business-case-studio",
   "private": true,
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Model the ROI, TCO, risk, and realized value of internally developed, AI-assisted, and vibe-coded applications.",
   "license": "MIT",
   "repository": {

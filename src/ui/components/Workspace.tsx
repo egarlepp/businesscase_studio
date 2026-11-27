@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { FilePlus2, FlaskConical, Sparkles } from 'lucide-react';
+import { Compass, FilePlus2, FlaskConical, Sparkles } from 'lucide-react';
 import type { Section } from '../fields';
 import { useWorkspace } from '../../workspace/useWorkspace';
 
@@ -62,7 +62,14 @@ const FIRST_STEPS: Array<{ section: Section; title: string; detail: string }> = 
 ];
 
 /** Shown on the Overview while the case has no benefits or costs. */
-export function OverviewEmptyState({ onNavigate }: { onNavigate: (section: Section) => void }) {
+export function OverviewEmptyState({
+  onNavigate,
+  onStartGuide,
+}: {
+  onNavigate: (section: Section) => void;
+  /** Opens the guided walkthrough. */
+  onStartGuide?: () => void;
+}) {
   const { enterDemo } = useWorkspace();
   return (
     <section className="panel empty-state" aria-labelledby="empty-state-title">
@@ -71,6 +78,14 @@ export function OverviewEmptyState({ onNavigate }: { onNavigate: (section: Secti
         No benefits or costs are entered yet, so the charts are hidden and the metrics read zero.
         Work through these pages in order; the Overview fills in as you type.
       </p>
+      {onStartGuide && (
+        <div className="button-row">
+          <button type="button" className="primary" onClick={onStartGuide}>
+            <Compass size={17} aria-hidden="true" />
+            Start the guided walkthrough
+          </button>
+        </div>
+      )}
       <ol className="empty-steps">
         {FIRST_STEPS.map((step, index) => (
           <li key={step.section}>
@@ -99,7 +114,7 @@ export function OverviewEmptyState({ onNavigate }: { onNavigate: (section: Secti
 }
 
 /** First-launch choice between an empty case and the sample. Rendered as a modal dialog. */
-export function WelcomeDialog() {
+export function WelcomeDialog({ onStartGuide }: { onStartGuide?: () => void } = {}) {
   const { startBlank, enterDemo } = useWorkspace();
   const firstButton = useRef<HTMLButtonElement>(null);
 
@@ -142,6 +157,22 @@ export function WelcomeDialog() {
             <strong>Start blank</strong>
             <span>All figures at zero, no sample names or assumptions. Saved in this browser.</span>
           </button>
+          {onStartGuide && (
+            <button
+              type="button"
+              className="choice"
+              onClick={() => {
+                startBlank();
+                onStartGuide();
+              }}
+            >
+              <Compass size={22} aria-hidden="true" />
+              <strong>Start with the guide</strong>
+              <span>
+                A blank case plus a step-by-step guide, with examples tailored to your audience.
+              </span>
+            </button>
+          )}
           <button type="button" className="choice" onClick={enterDemo}>
             <Sparkles size={22} aria-hidden="true" />
             <strong>Explore demo data</strong>

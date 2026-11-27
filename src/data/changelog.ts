@@ -16,6 +16,18 @@ export interface Release {
 
 export const CHANGELOG: readonly Release[] = [
   {
+    version: '0.5.0',
+    date: '2026-11-27',
+    title: 'Guided walkthrough, audiences, and blank start',
+    changes: [
+      'New guided walkthrough: open Guide in the header at any time. Five questions decide which steps you need, then it opens each page, explains what the step does, and shows example figures you can use or replace.',
+      'Choose who you are presenting to: IT manager, CIO / CTO, CFO, CRO, COO, CISO, or the board. The guide tailors its advice, marks the pages they care about with a dot, and Reports adds a briefing with the numbers to lead with and the questions to expect.',
+      'New cases start blank, with every figure at zero and no sample names or assumptions. The first launch asks whether to start blank, start with the guide, or explore demo data.',
+      'A Demo data switch in the header shows a filled-in sample case. Your own case is kept separately, and demo edits are not saved.',
+      'Clear data replaces Reset and erases the case saved in this browser after you confirm.',
+    ],
+  },
+  {
     version: '0.4.1',
     date: '2026-11-27',
     title: 'Version and release notes',

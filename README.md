@@ -12,7 +12,7 @@ governance, and technical debt. On the other side, internal tools create value t
 ROI models miss: recovered capacity, avoided hiring, faster reporting, and reduced risk.
 Business Case Studio puts both sides in one transparent model.
 
-> **Status:** early MVP (v0.4.1). Runs entirely in the browser with no backend. Your model is
+> **Status:** early MVP (v0.5.0). Runs entirely in the browser with no backend. Your model is
 > autosaved in this browser only; export a draft to keep or share it. Default numbers are
 > illustrative — replace them with your own approved assumptions.
 
@@ -31,6 +31,19 @@ Business Case Studio puts both sides in one transparent model.
 | **Assumptions**      | Editable register: add, edit, and remove assumptions with owner, source, confidence, and approval status                                                                                |
 | **Actuals**          | Forecast-versus-actual variance, initial-investment variance, payback progress, and ROI at the actual run rate                                                                          |
 | **Reports**          | Executive summary, key metrics, build-vs-buy summary, calculation trace, export/import drafts (JSON), cash-flow CSV, and print / Save as PDF                                            |
+
+**Guided walkthrough.** Open **Guide** in the header at any time. Five setup questions (who you
+are presenting to, the initiative's stage, which kinds of value you will claim, whether it is
+AI-assisted, and whether a commercial product exists) decide which steps apply. The guide then
+opens each page in turn, explains what the step does, shows example inputs you can apply or
+replace, and lists the questions to answer first. Progress is kept in this browser, so you can
+close it and pick up where you left off.
+
+**Pitch audiences.** IT manager, CIO / CTO, CFO / Finance, CRO / Sales leader, COO / Operations,
+CISO / Risk, and Board / Investment committee each define the metrics to lead with, which modeling
+scenario to present first, the pages they scrutinize (marked with a dot in the navigation), a
+storyline, and the questions to expect. The Reports page adds an audience briefing. Audiences are
+separate from the Conservative / Expected / Upside modeling scenarios.
 
 The formulas, scoring rubric, and decision guidance are documented in
 [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
@@ -78,7 +91,8 @@ src/
   ui/format.ts                  Currency-aware formatting
   ui/buildVsBuy.ts              Build-vs-buy headline, checklist tally, chart series
   ui/components/                Field, FormulaInfo, SensitivityPanel, BuildVsBuyPanel,
-                                AssumptionRegister, ChartTable
+                                AssumptionRegister, ChartTable, Walkthrough, AudienceBriefing
+  guide/                        Walkthrough steps, pitch audiences, and saved progress
   types/index.ts                Input and result types
 docs/METHODOLOGY.md             Formulas and decision guidance
 ```

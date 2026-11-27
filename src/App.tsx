@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import {
   AlertTriangle,
   BarChart3,
@@ -9,6 +9,7 @@ import {
   ChevronRight,
   CircleDollarSign,
   ClipboardList,
+  Compass,
   Download,
   Eraser,
   FileSpreadsheet,
@@ -58,6 +59,11 @@ import { createFormatters } from './ui/format';
 import { WhatsNewDialog } from './ui/components/WhatsNewDialog';
 import { CHANGELOG, readLastSeenVersion, writeLastSeenVersion } from './data/changelog';
 import { APP_VERSION } from './version';
+import { getAudience } from './guide/audiences';
+import { stepsFor } from './guide/steps';
+import { loadGuideState, saveGuideState, type GuideState } from './guide/storage';
+import { AudienceBriefing } from './ui/components/AudienceBriefing';
+import { Walkthrough } from './ui/components/Walkthrough';
 import {
   DemoBanner,
   DemoToggle,
@@ -113,6 +119,17 @@ function App() {
     writeLastSeenVersion(getBrowserStorage(), APP_VERSION);
   };
   const fileInput = useRef<HTMLInputElement>(null);
+  const [guide, setGuide] = useState<GuideState>(() => loadGuideState(getBrowserStorage()));
+  const [guideOpen, setGuideOpen] = useState(false);
+  const audience = guide.answers ? getAudience(guide.answers.audience) : null;
+  const navigate = useCallback((next: Section) => setSection(next), []);
+  useEffect(() => {
+    saveGuideState(getBrowserStorage(), guide);
+  }, [guide]);
+  const openGuide = (editAnswers = false) => {
+    if (editAnswers && guide.answers) setGuide((g) => ({ ...g, answers: null }));
+    setGuideOpen(true);
+  };
 
   const fmt = useMemo(() => createFormatters(base.currency), [base.currency]);
   /** Payback of a case with no figures is meaningless: show a dash instead of "0.0 months". */
@@ -270,10 +287,17 @@ function App() {
   );
 
   const groups = FIELD_GROUPS[section];
+  const guideHighlights = new Set<keyof Inputs>(
+    guideOpen && guide.answers
+      ? (stepsFor(guide.answers)
+          .find((s) => s.id === guide.stepId)
+          ?.examples.map((e) => e.key) ?? [])
+      : [],
+  );
 
   return (
     <WorkspaceProvider value={workspace}>
-      <div className="app-shell">
+      <div className={guideOpen ? 'app-shell guide-open' : 'app-shell'}>
         <a className="skip-link" href="#main">
           Skip to content
         </a>
@@ -311,7 +335,13 @@ function App() {
               >
                 <Icon size={18} />
                 <span>{name}</span>
-                <ChevronRight size={16} />
+                {audience?.focusSections.includes(name) ? (
+                  <span className="focus-dot" title={`Key page for ${audience.title}`}>
+                    <span className="sr-only">Key page for {audience.title}</span>
+                  </span>
+                ) : (
+                  <ChevronRight size={16} />
+                )}
               </button>
             ))}
           </nav>
@@ -344,6 +374,15 @@ function App() {
                   </button>
                 ))}
               </div>
+              <button
+                type="button"
+                className={guideOpen ? 'reset guide-toggle active' : 'reset guide-toggle'}
+                aria-pressed={guideOpen}
+                onClick={() => (guideOpen ? setGuideOpen(false) : openGuide())}
+              >
+                <Compass size={16} />
+                Guide
+              </button>
               <DemoToggle />
               <button type="button" className="reset" onClick={clearAllData}>
                 <Eraser size={16} />
@@ -363,7 +402,9 @@ function App() {
 
           {section === 'Overview' && (
             <>
-              {!hasFigures && <OverviewEmptyState onNavigate={setSection} />}
+              {!hasFigures && (
+                <OverviewEmptyState onNavigate={setSection} onStartGuide={() => openGuide()} />
+              )}
               <section className="metric-grid" aria-label="Key metrics">
                 {metricCard(
                   'roi',
@@ -559,6 +600,7 @@ function App() {
                       <Field
                         key={def.key}
                         def={def}
+                        highlight={guideHighlights.has(def.key)}
                         value={base[def.key]}
                         fmt={fmt}
                         onChange={update}
@@ -881,6 +923,15 @@ function App() {
                   )}
                 </div>
               </article>
+              {audience && (
+                <AudienceBriefing
+                  audience={audience}
+                  scenario={scenario}
+                  results={r}
+                  fmt={fmt}
+                  onChangeAudience={() => openGuide(true)}
+                />
+              )}
               <article className="panel">
                 <h2>Key metrics</h2>
                 <dl className="score-list">
@@ -1009,7 +1060,19 @@ function App() {
             />
           )}
         </main>
-        {workspace.needsChoice && <WelcomeDialog />}
+        {guideOpen && (
+          <Walkthrough
+            state={guide}
+            onStateChange={setGuide}
+            onClose={() => setGuideOpen(false)}
+            onNavigate={navigate}
+            inputs={base}
+            results={r}
+            fmt={fmt}
+            onApply={update}
+          />
+        )}
+        {workspace.needsChoice && <WelcomeDialog onStartGuide={() => openGuide()} />}
       </div>
     </WorkspaceProvider>
   );
