@@ -68,6 +68,8 @@ import { stepsFor } from './guide/steps';
 import { loadGuideState, saveGuideState, type GuideState } from './guide/storage';
 import { AudienceBriefing } from './ui/components/AudienceBriefing';
 import { Walkthrough } from './ui/components/Walkthrough';
+import { HintTooltip } from './ui/components/HintTooltip';
+import { confidenceBand, explainScenario } from './ui/explainers';
 import {
   DemoBanner,
   DemoToggle,
@@ -391,13 +393,44 @@ function App() {
               </button>
             ))}
           </nav>
-          <div className="sidebar-note">
-            <Gauge size={18} />
-            <div>
-              <strong>{r.confidenceScore}% model confidence</strong>
-              <span>{r.technicalRisk} technical risk</span>
-            </div>
-          </div>
+          <HintTooltip
+            placement="top"
+            className="sidebar-note-anchor"
+            content={
+              <>
+                <strong>
+                  {r.confidenceScore}% model confidence · {r.technicalRisk} technical risk
+                </strong>
+                <span>
+                  How far the {scenario} figures can be trusted. A base of 55 points, plus up to 12
+                  for adoption and 10 for benefit realization, plus 3 to 8 points each for testing,
+                  security, and documentation (the higher amount when scored Strong or Good on
+                  Technical Health).
+                </span>
+                <span>{confidenceBand(r.confidenceScore)}</span>
+                <span>
+                  Technical risk comes from the average of the ten Technical Health scores: Low,
+                  Moderate, High, or Critical. Higher risk calls for a larger technical debt
+                  reserve.
+                </span>
+              </>
+            }
+          >
+            {(describedBy) => (
+              <div
+                className="sidebar-note"
+                tabIndex={0}
+                aria-label={`${r.confidenceScore}% model confidence, ${r.technicalRisk} technical risk`}
+                aria-describedby={describedBy}
+              >
+                <Gauge size={18} />
+                <div>
+                  <strong>{r.confidenceScore}% model confidence</strong>
+                  <span>{r.technicalRisk} technical risk</span>
+                </div>
+              </div>
+            )}
+          </HintTooltip>
         </aside>
         <main id="main" tabIndex={-1}>
           <header>
@@ -413,17 +446,44 @@ function App() {
             </div>
             <div className="header-actions">
               <div className="scenario-tabs" role="group" aria-label="Scenario">
-                {SCENARIOS.map((x) => (
-                  <button
-                    type="button"
-                    key={x}
-                    className={scenario === x ? 'selected' : ''}
-                    aria-pressed={scenario === x}
-                    onClick={() => setScenario(x)}
-                  >
-                    {x}
-                  </button>
-                ))}
+                {SCENARIOS.map((x) => {
+                  const info = explainScenario(x);
+                  return (
+                    <HintTooltip
+                      key={x}
+                      content={
+                        <>
+                          <strong>{x}</strong>
+                          <span>{info.summary}</span>
+                          {info.adjustments.length > 0 && (
+                            <ul>
+                              {info.adjustments.map((a) => (
+                                <li key={a}>{a}</li>
+                              ))}
+                            </ul>
+                          )}
+                          {info.adjustments.length > 0 && (
+                            <span className="tooltip-note">
+                              Changes apply to your Expected inputs. Rates are capped at 100%.
+                            </span>
+                          )}
+                        </>
+                      }
+                    >
+                      {(describedBy) => (
+                        <button
+                          type="button"
+                          className={scenario === x ? 'selected' : ''}
+                          aria-pressed={scenario === x}
+                          aria-describedby={describedBy}
+                          onClick={() => setScenario(x)}
+                        >
+                          {x}
+                        </button>
+                      )}
+                    </HintTooltip>
+                  );
+                })}
               </div>
               <button
                 type="button"
