@@ -15,6 +15,7 @@ and the code disagree, the code is authoritative — please open an issue.
 - [Build versus buy](#build-versus-buy)
 - [Model confidence and guardrails](#model-confidence-and-guardrails)
 - [Right-sizing the analysis](#right-sizing-the-analysis) (including [scope](#scope-and-module-tiers))
+- [Presenting the case](#presenting-the-case)
 - [Decision guidance](#decision-guidance)
 - [Recommended review process](#recommended-review-process)
 - [Known limitations](#known-limitations)
@@ -362,6 +363,29 @@ cost, sensitive data with no security review or annual security cost, regulated 
 governance cost, a customer-facing app with no monitoring, many integrations with no architecture
 hours, and essential pages with nothing entered. The Reports page lists the scope, the tier of
 each page, what was left out and why, and value types that fit but are not claimed.
+
+## Presenting the case
+
+**Pitch audiences.** IT manager, CIO / CTO, CFO / Finance, CRO / Sales leader, COO / Operations,
+CISO / Risk, and Board / Investment committee each name the metrics to lead with, the modeling
+scenario to present first, the pages they scrutinize, a storyline, and the questions to expect.
+Audiences change what is emphasized, never the figures.
+
+**AI briefing pack.** The Reports page builds one Markdown document (`src/export/briefingPack.ts`)
+to paste into or attach to an AI assistant that writes a memo, a slide deck, or both. It holds:
+
+- Results for all three scenarios and the ROI with soft claims removed
+- Each claimed value type with its evidence class and baseline source
+- Costs, cash flow, and the inputs that move NPV most (from the sensitivity analysis)
+- Scope and module tiers, the assumption register, and guardrail warnings
+- The pilot success threshold and the kill criterion
+
+Every figure is formatted from the engine's results before export, so the assistant has nothing to
+compute. The prompt follows the chosen audience's storyline and questions, and tells the assistant
+to quote figures exactly, not to calculate, round, convert, or invent anything, to name the
+scenario behind every result, and to keep every risk and caveat. Free text from the case (names,
+assumptions, baseline sources) is marked as data, not instructions. The app never calls an AI
+service; review the output against the Reports page before presenting it.
 
 ## Decision guidance
 
