@@ -12,8 +12,8 @@ governance, and technical debt. On the other side, internal tools create value t
 ROI models miss: recovered capacity, avoided hiring, faster reporting, and reduced risk.
 Business Case Studio puts both sides in one transparent model.
 
-> **Status:** early MVP (v0.5.0). Runs entirely in the browser with no backend. Your model is
-> autosaved in this browser only; export a draft to keep or share it. Default numbers are
+> **Status:** early MVP (v0.6.0). Runs entirely in the browser with no backend. Your model is
+> autosaved in this browser only; use **Save file** to keep or share it as JSON. Default numbers are
 > illustrative — replace them with your own approved assumptions.
 
 ## Features
@@ -30,7 +30,7 @@ Business Case Studio puts both sides in one transparent model.
 | **Scenarios**        | Conservative / Expected / Upside comparison and a tornado sensitivity analysis (NPV or ROI, ±10–30%)                                                                                    |
 | **Assumptions**      | Editable register: add, edit, and remove assumptions with owner, source, confidence, and approval status                                                                                |
 | **Actuals**          | Forecast-versus-actual variance, initial-investment variance, payback progress, and ROI at the actual run rate                                                                          |
-| **Reports**          | Executive summary, key metrics, build-vs-buy summary, calculation trace, export/import drafts (JSON), cash-flow CSV, and print / Save as PDF                                            |
+| **Reports**          | Executive summary, key metrics, build-vs-buy summary, calculation trace, save and open case files (JSON), cash-flow CSV, and print / Save as PDF                                        |
 
 **Guided walkthrough.** Open **Guide** in the header at any time. Five setup questions (who you
 are presenting to, the initiative's stage, which kinds of value you will claim, whether it is

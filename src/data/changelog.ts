@@ -16,6 +16,17 @@ export interface Release {
 
 export const CHANGELOG: readonly Release[] = [
   {
+    version: '0.6.0',
+    date: '2026-11-27',
+    title: 'Named business cases and case files',
+    changes: [
+      'Give each business case its own name: select the pencil next to the title. The name is separate from the application name on the Profile page, which still shows under the title.',
+      'Save file in the header downloads the whole case as a JSON file named after the case: every input, the scenario, the assumption register, and your walkthrough answers.',
+      'Open file in the header loads a saved case so you can pick up where you left off. The file is checked first, you are asked before your current case is replaced, and anything that could not be read is listed.',
+      'Files saved by earlier versions still open. Fields the app does not recognize are ignored, and fields missing from a file are left blank instead of being filled with sample figures.',
+    ],
+  },
+  {
     version: '0.5.1',
     date: '2026-11-27',
     title: 'Field, scenario, and confidence explanations',

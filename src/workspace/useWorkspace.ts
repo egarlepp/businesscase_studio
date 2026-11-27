@@ -57,6 +57,8 @@ export interface WorkspaceActions {
 }
 
 export interface WorkspaceState {
+  /** The business case's own title; empty until the user names it. */
+  caseName: string;
   inputs: Inputs;
   scenario: ScenarioName;
   assumptions: AssumptionItem[];
@@ -70,6 +72,7 @@ export interface WorkspaceState {
 }
 
 export interface Workspace extends WorkspaceState, WorkspaceActions {
+  setCaseName: Dispatch<SetStateAction<string>>;
   setInputs: Dispatch<SetStateAction<Inputs>>;
   setScenario: Dispatch<SetStateAction<ScenarioName>>;
   setAssumptions: Dispatch<SetStateAction<AssumptionItem[]>>;
@@ -78,6 +81,7 @@ export interface Workspace extends WorkspaceState, WorkspaceActions {
 export function useWorkspaceState(): Workspace {
   const [initial] = useState(() => resolveInitialWorkspace(getBrowserStorage()));
   const [canPersist] = useState(() => storageWritable(getBrowserStorage()));
+  const [caseName, setCaseName] = useState(initial.draft.caseName);
   const [inputs, setInputs] = useState<Inputs>(initial.draft.inputs);
   const [scenario, setScenario] = useState<ScenarioName>(initial.draft.scenario);
   const [assumptions, setAssumptions] = useState<AssumptionItem[]>(initial.draft.assumptions);
@@ -85,6 +89,7 @@ export function useWorkspaceState(): Workspace {
   const [needsChoice, setNeedsChoice] = useState(initial.needsChoice);
 
   const show = useCallback((draft: DraftState) => {
+    setCaseName(draft.caseName);
     setInputs(draft.inputs);
     setScenario(draft.scenario);
     setAssumptions(draft.assumptions);
@@ -116,12 +121,14 @@ export function useWorkspaceState(): Workspace {
   // Only the user's own case is saved; demo edits and the pre-choice preview stay in memory.
   useEffect(() => {
     if (canPersist && !demoMode && !needsChoice)
-      saveStoredDraft(getBrowserStorage(), { inputs, scenario, assumptions });
-  }, [canPersist, demoMode, needsChoice, inputs, scenario, assumptions]);
+      saveStoredDraft(getBrowserStorage(), { caseName, inputs, scenario, assumptions });
+  }, [canPersist, demoMode, needsChoice, caseName, inputs, scenario, assumptions]);
 
-  const isBlank = !hasEnteredData({ inputs, scenario, assumptions });
+  const isBlank = !hasEnteredData({ caseName, inputs, scenario, assumptions });
 
   return {
+    caseName,
+    setCaseName,
     inputs,
     scenario,
     assumptions,

@@ -73,6 +73,11 @@ describe('blank case', () => {
     draft.inputs.applicationName = 'My app';
     expect(hasEnteredData(draft)).toBe(true);
   });
+
+  it("counts a case name as entered data, and a named sample as the user's own case", () => {
+    expect(hasEnteredData({ ...blankDraft(), caseName: 'FY27 request' })).toBe(true);
+    expect(isSampleDraft({ ...sampleDraft(), caseName: 'FY27 request' })).toBe(false);
+  });
 });
 
 describe('isSampleDraft', () => {

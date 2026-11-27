@@ -40,21 +40,25 @@ function parseAnswers(value: unknown): GuideAnswers | null {
   return { audience: v.audience, stage, aiAssisted, buyOption, levers };
 }
 
+/** Validates an untrusted guide state object, dropping anything unrecognized. Never throws. */
+export function parseGuideValue(raw: unknown): GuideState {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return emptyGuideState();
+  const v = raw as Record<string, unknown>;
+  return {
+    answers: parseAnswers(v.answers),
+    stepId: typeof v.stepId === 'string' && STEP_IDS.has(v.stepId) ? v.stepId : null,
+    done: Array.isArray(v.done)
+      ? v.done.filter((id): id is string => typeof id === 'string' && STEP_IDS.has(id))
+      : [],
+    introDismissed: v.introDismissed === true,
+  };
+}
+
 /** Parses stored guide state, dropping anything unrecognized. Never throws. */
 export function parseGuideState(text: string | null): GuideState {
   if (!text) return emptyGuideState();
   try {
-    const raw: unknown = JSON.parse(text);
-    if (!raw || typeof raw !== 'object') return emptyGuideState();
-    const v = raw as Record<string, unknown>;
-    return {
-      answers: parseAnswers(v.answers),
-      stepId: typeof v.stepId === 'string' && STEP_IDS.has(v.stepId) ? v.stepId : null,
-      done: Array.isArray(v.done)
-        ? v.done.filter((id): id is string => typeof id === 'string' && STEP_IDS.has(id))
-        : [],
-      introDismissed: v.introDismissed === true,
-    };
+    return parseGuideValue(JSON.parse(text));
   } catch {
     return emptyGuideState();
   }

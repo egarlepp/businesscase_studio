@@ -169,8 +169,8 @@ describe('App', () => {
       scenario: 'Conservative',
     };
     const file = new File([JSON.stringify(draft)], 'case.json', { type: 'application/json' });
-    await user.upload(screen.getByLabelText('Import draft file'), file);
-    expect(await screen.findByText('Imported "Imported Case".')).toBeInTheDocument();
+    await user.upload(screen.getByLabelText('Open business case file'), file);
+    expect(await screen.findByText('Opened "Imported Case".')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Imported Case');
     expect(
       within(screen.getByRole('group', { name: 'Scenario' })).getByRole('button', {
@@ -185,7 +185,7 @@ describe('App', () => {
     render(<App />);
     await goTo(user, 'Reports');
     const file = new File(['{not json'], 'broken.json', { type: 'application/json' });
-    await user.upload(screen.getByLabelText('Import draft file'), file);
+    await user.upload(screen.getByLabelText('Open business case file'), file);
     expect(await screen.findByText('The file is not valid JSON.')).toBeInTheDocument();
     expect(confirm).not.toHaveBeenCalled();
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
@@ -442,12 +442,149 @@ describe('Workspace: blank start and demo mode', () => {
       inputs: { ...defaultInputs, applicationName: 'Imported Case' },
     };
     const file = new File([JSON.stringify(draft)], 'case.json', { type: 'application/json' });
-    await user.upload(screen.getByLabelText('Import draft file'), file);
-    expect(await screen.findByText('Imported "Imported Case".')).toBeInTheDocument();
+    await user.upload(screen.getByLabelText('Open business case file'), file);
+    expect(await screen.findByText('Opened "Imported Case".')).toBeInTheDocument();
     expect(screen.getByRole('switch', { name: 'Demo data' })).toHaveAttribute(
       'aria-checked',
       'false',
     );
     expect(window.localStorage.getItem(STORAGE_KEY)).toContain('Imported Case');
+  });
+});
+
+/** Capture what the app downloads: the file name and its text. */
+function captureDownloads() {
+  const files: Array<{ name: string; blob: Blob }> = [];
+  let pending: Blob | null = null;
+  Object.assign(URL, {
+    createObjectURL: (blob: Blob) => {
+      pending = blob;
+      return 'blob:test';
+    },
+    revokeObjectURL: () => undefined,
+  });
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+    this: HTMLAnchorElement,
+  ) {
+    if (pending) files.push({ name: this.download, blob: pending });
+    pending = null;
+  });
+  return files;
+}
+
+describe('Named business cases and case files', () => {
+  beforeEach(seedOwnSampleCase);
+
+  it('renames the case from the header and keeps the application name visible', async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<App />);
+    await user.click(screen.getByRole('button', { name: 'Rename business case' }));
+    const field = screen.getByRole('textbox', { name: 'Business case name' });
+    expect(field).toHaveFocus();
+    expect(field).toHaveValue(defaultInputs.applicationName);
+    await user.clear(field);
+    await user.type(field, '  FY27 funding request  {Enter}');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('FY27 funding request');
+    expect(screen.getByText(`Application: ${defaultInputs.applicationName}`)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Rename business case' })).toBeInTheDocument();
+    unmount();
+    render(<App />);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('FY27 funding request');
+  });
+
+  it('cancels a rename with Escape', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: 'Rename business case' }));
+    await user.type(screen.getByRole('textbox', { name: 'Business case name' }), 'Nope{Escape}');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+      defaultInputs.applicationName,
+    );
+  });
+
+  it('saves the whole case to a file named after the case', async () => {
+    const user = userEvent.setup();
+    const downloads = captureDownloads();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: 'Rename business case' }));
+    const field = screen.getByRole('textbox', { name: 'Business case name' });
+    await user.clear(field);
+    await user.type(field, 'Q3 Pipeline Review{Enter}');
+    await user.click(screen.getByRole('button', { name: 'Save file' }));
+    expect(downloads).toHaveLength(1);
+    expect(downloads[0].name).toBe('q3-pipeline-review.json');
+    const saved = JSON.parse(await downloads[0].blob.text()) as Record<string, unknown>;
+    expect(saved).toMatchObject({
+      schema: DRAFT_SCHEMA,
+      version: DRAFT_VERSION,
+      appVersion: APP_VERSION,
+      caseName: 'Q3 Pipeline Review',
+      scenario: 'Expected',
+    });
+    expect((saved.inputs as Record<string, unknown>).applicationName).toBe(
+      defaultInputs.applicationName,
+    );
+  });
+
+  it('opens a saved file, restoring its name and walkthrough audience', async () => {
+    const user = userEvent.setup();
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    render(<App />);
+    const draft = {
+      schema: DRAFT_SCHEMA,
+      version: DRAFT_VERSION,
+      caseName: 'Claims portal business case',
+      inputs: { ...defaultInputs, applicationName: 'Claims portal' },
+      guide: {
+        answers: {
+          audience: 'cfo',
+          stage: 'built',
+          aiAssisted: 'no',
+          buyOption: 'no',
+          levers: ['productivity'],
+        },
+        stepId: null,
+        done: [],
+      },
+    };
+    const file = new File([JSON.stringify(draft)], 'claims.json', { type: 'application/json' });
+    await user.upload(screen.getByLabelText('Open business case file'), file);
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining('Claims portal business case'));
+    expect(await screen.findByText('Opened "Claims portal business case".')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+      'Claims portal business case',
+    );
+    expect(screen.getByText('Application: Claims portal')).toBeInTheDocument();
+    expect(window.localStorage.getItem(STORAGE_KEY)).toContain('Claims portal business case');
+    expect(window.localStorage.getItem('business-case-studio:guide')).toContain('"cfo"');
+  });
+
+  it('keeps the current case when the overwrite is declined', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    render(<App />);
+    const draft = { schema: DRAFT_SCHEMA, version: DRAFT_VERSION, caseName: 'Other', inputs: {} };
+    const file = new File([JSON.stringify(draft)], 'other.json', { type: 'application/json' });
+    await user.upload(screen.getByLabelText('Open business case file'), file);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+      defaultInputs.applicationName,
+    );
+    expect(screen.queryByText('Opened "Other".')).not.toBeInTheDocument();
+  });
+
+  it('opens a file into an empty case without asking', async () => {
+    window.localStorage.clear();
+    saveWorkspacePrefs(window.localStorage, { demoMode: false });
+    const user = userEvent.setup();
+    const confirm = vi.spyOn(window, 'confirm');
+    render(<App />);
+    const draft = { schema: DRAFT_SCHEMA, version: 1, inputs: { applicationName: 'Old file' } };
+    const file = new File([JSON.stringify(draft)], 'old.json', { type: 'application/json' });
+    await user.upload(screen.getByLabelText('Open business case file'), file);
+    expect(confirm).not.toHaveBeenCalled();
+    expect(await screen.findByText('Opened "Old file".')).toBeInTheDocument();
+    expect(screen.getByText(/left blank/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Dismiss message' }));
+    expect(screen.queryByText('Opened "Old file".')).not.toBeInTheDocument();
   });
 });
