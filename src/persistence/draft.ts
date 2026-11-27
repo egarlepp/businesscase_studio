@@ -1,10 +1,13 @@
 import {
   BUILD_VS_BUY_KEYS,
   BUY_COST_KEYS,
+  CORE_VALUE_TYPES,
+  VALUE_CLAIM_KEYS,
   blankInputs,
   defaultAssumptions,
   SCENARIOS,
 } from '../data/defaults';
+import { CLAIM_KEYS, claimKey } from '../data/valueTypes';
 import { ASSUMPTION_STATUSES, CONFIDENCE_LEVELS } from '../data/assumptions';
 import { parseGuideValue, type GuideState } from '../guide/storage';
 import { normalizeCurrency } from '../ui/format';
@@ -128,6 +131,16 @@ function parseInputs(raw: unknown, warnings: string[]): Inputs {
     BUILD_VS_BUY_KEYS.forEach((key) => migrated.add(key));
     warnings.push(
       'This draft predates the build-vs-buy comparison; enter vendor costs on the Build vs Buy page to use it.',
+    );
+  }
+
+  // Migration: drafts saved before v0.7.0 have no value-claim flags. The four original benefit
+  // panels were always counted, so they stay claimed; the additional value types start off.
+  if (!CLAIM_KEYS.some((key) => key in raw)) {
+    for (const id of CORE_VALUE_TYPES) inputs[claimKey(id)] = 1;
+    VALUE_CLAIM_KEYS.forEach((key) => migrated.add(key));
+    warnings.push(
+      'This draft predates value claims; its four original benefit types stay claimed. Add others on the Benefits page.',
     );
   }
 

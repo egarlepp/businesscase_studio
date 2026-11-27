@@ -1,11 +1,21 @@
 import type {
   ActualsResults,
   AnnualBreakdown,
+  BenefitBreakdown,
   BuildVsBuyRecommendation,
   BuildVsBuyResults,
+  ClaimResult,
+  EvidenceBreakdown,
   Inputs,
   Results,
 } from '../types';
+import {
+  VALUE_TYPES,
+  evidenceOf,
+  getValueType,
+  isClaimed,
+  type ValueTypeId,
+} from '../data/valueTypes';
 const clamp = (v: number, min = 0, max = 1) => Math.min(Math.max(v, min), max);
 const positive = (v: number) => Math.max(v, 0);
 const formatPercent = (v: number) => `${Math.round(v * 1000) / 10}%`;
@@ -36,6 +46,9 @@ export interface PaybackParams {
   /** One-time saving per month (e.g. deferred hiring), applied for the first `oneTimeMonths`. */
   oneTimeMonthly: number;
   oneTimeMonths: number;
+  /** Recurring saving that starts only after `delayedStartMonths` (a cancelled contract). */
+  delayedAnnualBenefits?: number;
+  delayedStartMonths?: number;
 }
 
 /**
@@ -54,7 +67,13 @@ export function calculatePaybackMonths(p: PaybackParams): number | null {
         p.annualRunCost * Math.pow(1 + p.costGrowthRate, yearIndex)) /
       12;
     const oneTimeShare = clamp(p.oneTimeMonths - (month - 1), 0, 1);
-    const net = recurring + p.oneTimeMonthly * oneTimeShare;
+    const delayedShare = clamp(month - (p.delayedStartMonths ?? 0), 0, 1);
+    const delayed =
+      ((p.delayedAnnualBenefits ?? 0) *
+        Math.pow(1 + p.benefitsGrowthRate, yearIndex) *
+        delayedShare) /
+      12;
+    const net = recurring + delayed + p.oneTimeMonthly * oneTimeShare;
     if (net > 0 && cumulative + net >= p.initialCost)
       return month - 1 + (p.initialCost - cumulative) / net;
     cumulative += net;
@@ -161,6 +180,77 @@ export function suggestTechnicalDebtReserveRate(technicalHealthScore: number): n
   );
 }
 
+/** Which value type each recurring benefit line belongs to. */
+export const BENEFIT_LINE_TYPES: Record<keyof BenefitBreakdown, ValueTypeId> = {
+  productivity: 'productivity',
+  management: 'productivity',
+  reconciliation: 'productivity',
+  capacity: 'capacity',
+  contractorAvoidance: 'capacity',
+  winRate: 'revenue',
+  opportunityCoverage: 'revenue',
+  riskReduction: 'risk',
+  costReduction: 'costReduction',
+  retention: 'retention',
+  cycleTime: 'cycleTime',
+  cashAcceleration: 'cashAcceleration',
+  quality: 'quality',
+  compliance: 'compliance',
+  talent: 'talent',
+  forecast: 'forecast',
+  customerExperience: 'customerExperience',
+  techDebt: 'techDebt',
+};
+
+/** Share of year `yearIndex` (0-based) after `startMonths` have passed. */
+const activeShare = (startMonths: number, yearIndex: number) =>
+  clamp((12 * (yearIndex + 1) - startMonths) / 12, 0, 1);
+
+interface BenefitStreams {
+  /** Run-rate recurring benefits, excluding the delayed hard cost reduction. */
+  recurring: number;
+  /** Hard cost reduction run rate, counted only after `delayMonths`. */
+  delayed: number;
+  delayMonths: number;
+  oneTimeMonthly: number;
+  oneTimeMonths: number;
+}
+
+interface CashFlows {
+  annualBreakdown: AnnualBreakdown[];
+  totalBenefits: number;
+  totalCosts: number;
+  npv: number;
+}
+
+function projectCashFlows(
+  raw: Inputs,
+  years: number,
+  streams: BenefitStreams,
+  initialCost: number,
+  annualRunCost: number,
+): CashFlows {
+  let cumulativeNet = -initialCost,
+    npv = -initialCost,
+    totalBenefits = 0,
+    recurringCosts = 0;
+  const annualBreakdown = Array.from({ length: years }, (_, i) => {
+    const year = i + 1;
+    const oneTimeBenefits = streams.oneTimeMonthly * clamp(streams.oneTimeMonths - i * 12, 0, 12);
+    const recurring = streams.recurring + streams.delayed * activeShare(streams.delayMonths, i);
+    const benefits = recurring * Math.pow(1 + raw.benefitsGrowthRate, i) + oneTimeBenefits;
+    const costs = annualRunCost * Math.pow(1 + raw.costGrowthRate, i);
+    totalBenefits += benefits;
+    recurringCosts += costs;
+    const net = benefits - costs;
+    cumulativeNet += net;
+    const discountedNet = net / Math.pow(1 + positive(raw.discountRate), year);
+    npv += discountedNet;
+    return { year, benefits, oneTimeBenefits, costs, net, discountedNet, cumulativeNet };
+  });
+  return { annualBreakdown, totalBenefits, totalCosts: initialCost + recurringCosts, npv };
+}
+
 export function calculateBusinessCase(raw: Inputs): Results {
   const adoption = clamp(raw.adoptionRate),
     realization = clamp(raw.realizationRate),
@@ -168,7 +258,14 @@ export function calculateBusinessCase(raw: Inputs): Results {
   const grossMargin = clamp(raw.grossMargin),
     contribution = clamp(raw.contributionRate),
     years = clampHorizonYears(raw.horizonYears);
+  const costOfCapital = positive(raw.discountRate);
+  /** 1 while a value type is claimed, 0 otherwise: unclaimed types contribute nothing. */
+  const gate = (id: ValueTypeId) => (isClaimed(raw, id) ? 1 : 0);
+  const productivityOn = gate('productivity'),
+    capacityOn = gate('capacity'),
+    revenueOn = gate('revenue');
   const productivity =
+    productivityOn *
     raw.users *
     (raw.minutesSavedPerUserWeek / 60) *
     raw.loadedHourlyRate *
@@ -176,40 +273,129 @@ export function calculateBusinessCase(raw: Inputs): Results {
     adoption *
     realization;
   const management =
-    raw.managers * raw.managerHoursSavedMonth * 12 * raw.managerHourlyRate * adoption * realization;
+    productivityOn *
+    raw.managers *
+    raw.managerHoursSavedMonth *
+    12 *
+    raw.managerHourlyRate *
+    adoption *
+    realization;
   const reconciliation =
-    raw.reconciliationHoursSavedMonth * 12 * raw.analystHourlyRate * adoption * realization;
+    productivityOn *
+    raw.reconciliationHoursSavedMonth *
+    12 *
+    raw.analystHourlyRate *
+    adoption *
+    realization;
   const capacity =
-    raw.capacityHoursRecoveredYear * raw.loadedHourlyRate * capRealization * adoption;
-  const contractorAvoidance = raw.contractorHoursAvoided * raw.contractorHourlyRate * adoption;
+    capacityOn * raw.capacityHoursRecoveredYear * raw.loadedHourlyRate * capRealization * adoption;
+  const contractorAvoidance =
+    capacityOn * raw.contractorHoursAvoided * raw.contractorHourlyRate * adoption;
   // Deferred hiring is a one-time saving: the loaded cost of each deferred FTE is avoided only
   // for the months the hire is postponed, starting at go-live. It is not a recurring benefit.
   const hiringDeferralMonthly =
-    positive(raw.deferredHires) * positive(raw.monthlyLoadedFteCost) * adoption;
+    capacityOn * positive(raw.deferredHires) * positive(raw.monthlyLoadedFteCost) * adoption;
   const deferralMonths = positive(raw.monthsDeferred);
   const winRate =
+    revenueOn *
     raw.influencedPipeline *
     positive(raw.incrementalWinRate) *
     grossMargin *
     contribution *
     adoption;
   const opportunityCoverage =
+    revenueOn *
     raw.additionalOpportunities *
     raw.averageDealValue *
     clamp(raw.opportunityWinRate) *
     grossMargin *
     contribution *
     adoption;
-  const riskReduction = raw.riskExposure * clamp(raw.riskProbability) * clamp(raw.riskReduction);
-  const annualBenefits =
-    productivity +
-    management +
-    reconciliation +
-    capacity +
-    contractorAvoidance +
-    winRate +
-    opportunityCoverage +
-    riskReduction;
+  const riskReduction =
+    gate('risk') * raw.riskExposure * clamp(raw.riskProbability) * clamp(raw.riskReduction);
+
+  // Additional value types. Each is a year-one recurring value.
+  // Hard cost reduction counts only from the month the contracts end (no adoption factor: a
+  // cancelled contract is cancelled for everyone).
+  const costReductionRunRate = gate('costReduction') * positive(raw.costRetiredSpend);
+  const costExitMonths = positive(raw.costMonthsToExit);
+  const costReduction = costReductionRunRate * activeShare(costExitMonths, 0);
+  const retention =
+    gate('retention') *
+    positive(raw.retentionArr) *
+    clamp(raw.retentionLift) *
+    grossMargin *
+    clamp(raw.retentionAttribution) *
+    adoption;
+  // Revenue that closes sooner is not new revenue: only its timing value counts, priced at the
+  // cost of capital (the discount rate).
+  const cycleTime =
+    gate('cycleTime') *
+    positive(raw.cycleTimeRevenue) *
+    grossMargin *
+    (positive(raw.cycleTimeDaysSaved) / 365) *
+    costOfCapital *
+    adoption;
+  // Collecting cash sooner releases working capital once; the recurring benefit is the financing
+  // cost saved on that balance.
+  const workingCapitalReleased =
+    gate('cashAcceleration') *
+    positive(raw.cashAnnualBilled) *
+    (positive(raw.cashDaysFaster) / 365) *
+    adoption;
+  const cashAcceleration = workingCapitalReleased * costOfCapital;
+  const quality =
+    gate('quality') *
+    (positive(raw.reworkHoursMonth) * 12 * raw.loadedHourlyRate * realization +
+      positive(raw.errorsAvoidedYear) * positive(raw.costPerError)) *
+    adoption;
+  const compliance =
+    gate('compliance') *
+    (positive(raw.auditPrepHoursYear) * raw.analystHourlyRate * adoption +
+      positive(raw.auditExternalSavings));
+  const hoursPerWeek = raw.workWeeks > 0 ? raw.annualProductiveHours / raw.workWeeks : 0;
+  const talent =
+    gate('talent') *
+    (positive(raw.rampHiresYear) *
+      positive(raw.rampWeeksSaved) *
+      hoursPerWeek *
+      raw.loadedHourlyRate *
+      realization +
+      positive(raw.attritionAvoidedYear) * positive(raw.replacementCost)) *
+    adoption;
+  const forecast =
+    gate('forecast') * positive(raw.forecastMissCost) * clamp(raw.forecastImprovement) * adoption;
+  const customerExperience =
+    gate('customerExperience') *
+    positive(raw.cxContactsAvoidedYear) *
+    positive(raw.cxCostPerContact) *
+    adoption;
+  const techDebt =
+    gate('techDebt') *
+    (positive(raw.techDebtHoursYear) * raw.supportHourlyRate + positive(raw.techDebtRetiredSpend));
+  const strategicValue = gate('strategic') * positive(raw.strategicAnnualValue);
+
+  const benefitBreakdown: BenefitBreakdown = {
+    productivity,
+    management,
+    reconciliation,
+    capacity,
+    contractorAvoidance,
+    winRate,
+    opportunityCoverage,
+    riskReduction,
+    costReduction,
+    retention,
+    cycleTime,
+    cashAcceleration,
+    quality,
+    compliance,
+    talent,
+    forecast,
+    customerExperience,
+    techDebt,
+  };
+  const annualBenefits = Object.values(benefitBreakdown).reduce((a, b) => a + b, 0);
 
   const aiCash =
     (raw.aiInputTokens / 1e6) * raw.aiInputRatePerMillion +
@@ -241,37 +427,83 @@ export function calculateBusinessCase(raw: Inputs): Results {
 
   const hiringDeferral = hiringDeferralMonthly * Math.min(deferralMonths, years * 12);
 
-  let cumulativeNet = -initialCost,
-    npv = -initialCost,
-    totalBenefits = 0,
-    recurringCosts = 0;
-  const annualBreakdown = Array.from({ length: years }, (_, i) => {
-    const year = i + 1;
-    const deferralMonthsThisYear = clamp(deferralMonths - i * 12, 0, 12);
-    const oneTimeBenefits = hiringDeferralMonthly * deferralMonthsThisYear;
-    const benefits = annualBenefits * Math.pow(1 + raw.benefitsGrowthRate, i) + oneTimeBenefits;
-    const costs = annualRunCost * Math.pow(1 + raw.costGrowthRate, i);
-    totalBenefits += benefits;
-    recurringCosts += costs;
-    const net = benefits - costs;
-    cumulativeNet += net;
-    const discountedNet = net / Math.pow(1 + positive(raw.discountRate), year);
-    npv += discountedNet;
-    return { year, benefits, oneTimeBenefits, costs, net, discountedNet, cumulativeNet };
-  });
-  const totalCosts = initialCost + recurringCosts,
-    netBenefit = totalBenefits - totalCosts;
+  const streams = (include: (id: ValueTypeId) => boolean): BenefitStreams => {
+    let recurring = 0;
+    for (const [line, value] of Object.entries(benefitBreakdown) as [
+      keyof BenefitBreakdown,
+      number,
+    ][])
+      if (line !== 'costReduction' && include(BENEFIT_LINE_TYPES[line])) recurring += value;
+    return {
+      recurring,
+      delayed: include('costReduction') ? costReductionRunRate : 0,
+      delayMonths: costExitMonths,
+      oneTimeMonthly: include('capacity') ? hiringDeferralMonthly : 0,
+      oneTimeMonths: deferralMonths,
+    };
+  };
+  const fullStreams = streams(() => true);
+  const { annualBreakdown, totalBenefits, totalCosts, npv } = projectCashFlows(
+    raw,
+    years,
+    fullStreams,
+    initialCost,
+    annualRunCost,
+  );
+  const netBenefit = totalBenefits - totalCosts;
   const roi = totalCosts ? netBenefit / totalCosts : 0,
     benefitCostRatio = totalCosts ? totalBenefits / totalCosts : 0;
   const paybackMonths = calculatePaybackMonths({
     initialCost,
-    annualRecurringBenefits: annualBenefits,
+    annualRecurringBenefits: fullStreams.recurring,
     annualRunCost,
     benefitsGrowthRate: raw.benefitsGrowthRate,
     costGrowthRate: raw.costGrowthRate,
     oneTimeMonthly: hiringDeferralMonthly,
     oneTimeMonths: deferralMonths,
+    delayedAnnualBenefits: costReductionRunRate,
+    delayedStartMonths: costExitMonths,
   });
+
+  // Claims by value type, and the case Finance will underwrite (soft claims removed).
+  const typeValues = new Map<ValueTypeId, number>();
+  for (const [line, value] of Object.entries(benefitBreakdown) as [
+    keyof BenefitBreakdown,
+    number,
+  ][])
+    typeValues.set(
+      BENEFIT_LINE_TYPES[line],
+      (typeValues.get(BENEFIT_LINE_TYPES[line]) ?? 0) + value,
+    );
+  typeValues.set('capacity', (typeValues.get('capacity') ?? 0) + hiringDeferral);
+  typeValues.set('strategic', strategicValue);
+  const claims: ClaimResult[] = VALUE_TYPES.filter((t) => isClaimed(raw, t.id)).map((t) => ({
+    id: t.id,
+    evidence: evidenceOf(raw, t.id),
+    value: typeValues.get(t.id) ?? 0,
+    countsTowardRoi: t.countsTowardRoi,
+  }));
+  const evidenceBreakdown: EvidenceBreakdown = { hard: 0, semiHard: 0, soft: 0 };
+  for (const c of claims) {
+    if (!c.countsTowardRoi) continue;
+    if (c.evidence === 'hard') evidenceBreakdown.hard += c.value;
+    else if (c.evidence === 'semi-hard') evidenceBreakdown.semiHard += c.value;
+    else evidenceBreakdown.soft += c.value;
+  }
+  const claimedValue = evidenceBreakdown.hard + evidenceBreakdown.semiHard + evidenceBreakdown.soft;
+  const evidenceBackedShare =
+    claimedValue > 0 ? (evidenceBreakdown.hard + evidenceBreakdown.semiHard) / claimedValue : null;
+  const backed = projectCashFlows(
+    raw,
+    years,
+    streams((id) => getValueType(id).countsTowardRoi && evidenceOf(raw, id) !== 'soft'),
+    initialCost,
+    annualRunCost,
+  );
+  const evidenceBackedRoi = backed.totalCosts
+    ? (backed.totalBenefits - backed.totalCosts) / backed.totalCosts
+    : 0;
+
   const traditionalBuildCost = raw.traditionalBuildHours * raw.traditionalBuildRate;
   const aiAssistedBuildCost = labor + aiCash;
   const aiDevelopmentSavings = traditionalBuildCost - aiAssistedBuildCost;
@@ -360,16 +592,14 @@ export function calculateBusinessCase(raw: Inputs): Results {
     technicalRisk,
     suggestedTechnicalDebtReserveRate,
     confidenceScore,
-    benefitBreakdown: {
-      productivity,
-      management,
-      reconciliation,
-      capacity,
-      contractorAvoidance,
-      winRate,
-      opportunityCoverage,
-      riskReduction,
-    },
+    claims,
+    evidenceBreakdown,
+    evidenceBackedShare,
+    evidenceBackedNpv: backed.npv,
+    evidenceBackedRoi,
+    strategicValue,
+    workingCapitalReleased,
+    benefitBreakdown,
     oneTimeBenefitBreakdown: { hiringDeferral },
     costBreakdown: {
       labor,

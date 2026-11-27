@@ -16,6 +16,20 @@ export interface Release {
 
 export const CHANGELOG: readonly Release[] = [
   {
+    version: '0.7.0',
+    date: '2026-11-27',
+    title: 'More value types and claim review',
+    changes: [
+      'Benefits now covers 15 value types. Beside time saved, capacity, revenue influence, and risk reduction you can claim hard cost reduction, retention and expansion, cycle time, cash acceleration, quality and rework, compliance, employee ramp and retention, forecast quality, customer experience, tech debt, and strategic optionality.',
+      'Switch on only the value types you will defend. Each claimed type shows its panel, an evidence class (hard, semi-hard, or soft), and a baseline source.',
+      'A claim review flags double counting, more than three claims, soft claims in the lead, missing baselines, and idea-stage cases without a pilot success threshold and kill criterion. It also asks you to compare against the commercial product when one exists.',
+      'The model reports NPV and ROI with soft claims removed. Strategic optionality is shown as an argument on top and is never counted in ROI.',
+      'Hard cost savings count only from the month a contract ends. Cycle time and cash acceleration count as the timing value of money, not new revenue.',
+      'The guide recommends claims for each audience, for example cycle time, rep ramp, forecast accuracy, and retention for a CRO, and Reports lists each claim with its evidence and source.',
+      'Cases saved before this version keep their four original benefit types claimed and calculate as before.',
+    ],
+  },
+  {
     version: '0.6.0',
     date: '2026-11-27',
     title: 'Named business cases and case files',

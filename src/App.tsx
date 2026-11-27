@@ -67,6 +67,9 @@ import { getAudience } from './guide/audiences';
 import { stepsFor } from './guide/steps';
 import { loadGuideState, saveGuideState, type GuideState } from './guide/storage';
 import { AudienceBriefing } from './ui/components/AudienceBriefing';
+import { ClaimsReport, ValueClaimsPanel } from './ui/components/ValueClaims';
+import { reviewClaims } from './guide/claimReview';
+import { claimKey, isClaimed, type ValueTypeId } from './data/valueTypes';
 import { Walkthrough } from './ui/components/Walkthrough';
 import {
   DemoBanner,
@@ -166,11 +169,32 @@ function App() {
 
   const update = (key: keyof Inputs, value: string | number) =>
     setBase((current) => ({ ...current, [key]: value }));
+  /** Claims the value types chosen in the walkthrough. Never unclaims: the page owns that. */
+  const claimTypes = useCallback(
+    (ids: ValueTypeId[]) =>
+      setBase((current) => {
+        const next = { ...current };
+        for (const id of ids) (next[claimKey(id)] as number) = 1;
+        return next;
+      }),
+    [setBase],
+  );
 
-  const benefitMix = Object.entries(r.benefitBreakdown).map(([key, value]) => ({
-    name: getFormula(key)?.label ?? key,
-    value,
-  }));
+  const stage = guide.answers?.stage ?? null;
+  const buyOption = guide.answers?.buyOption ?? null;
+  const claimReview = useMemo(
+    () => reviewClaims(modeled, r, { stage, buyOption }),
+    [modeled, r, stage, buyOption],
+  );
+  const guardrails = [...r.warnings, ...claimReview.warnings];
+
+  // Only lines with value: unclaimed value types would otherwise fill the chart with zeros.
+  const benefitMix = Object.entries(r.benefitBreakdown)
+    .filter(([, value]) => value !== 0)
+    .map(([key, value]) => ({
+      name: getFormula(key)?.label ?? key,
+      value,
+    }));
   const cash = r.annualBreakdown.map((x) => ({ ...x, label: `Year ${x.year}` }));
 
   const clearAllData = () => {
@@ -316,8 +340,8 @@ function App() {
 
   const warningList = (
     <div className="warning-list">
-      {r.warnings.length ? (
-        r.warnings.map((w) => (
+      {guardrails.length ? (
+        guardrails.map((w) => (
           <div className="warning" key={w}>
             <AlertTriangle size={17} />
             <span>{w}</span>
@@ -332,7 +356,7 @@ function App() {
     </div>
   );
 
-  const groups = FIELD_GROUPS[section];
+  const groups = FIELD_GROUPS[section]?.filter((g) => !g.valueType || isClaimed(base, g.valueType));
   const guideHighlights = new Set<keyof Inputs>(
     guideOpen && guide.answers
       ? (stepsFor(guide.answers)
@@ -601,6 +625,14 @@ function App() {
                           <dt>One-time hiring deferral</dt>
                           <dd>{fmt.money(r.oneTimeBenefitBreakdown.hiringDeferral)}</dd>
                         </div>
+                        <div>
+                          <dt>Evidence-backed share</dt>
+                          <dd>
+                            {r.evidenceBackedShare === null
+                              ? NO_VALUE
+                              : fmt.percent(r.evidenceBackedShare)}
+                          </dd>
+                        </div>
                       </dl>
                     </article>
                   </section>
@@ -669,6 +701,16 @@ function App() {
 
           {groups && (
             <section className="form-layout">
+              {section === 'Benefits' && (
+                <ValueClaimsPanel
+                  inputs={base}
+                  results={r}
+                  review={claimReview}
+                  audience={audience}
+                  fmt={fmt}
+                  onChange={update}
+                />
+              )}
               {groups.map((g) => (
                 <article className="panel form-panel" key={g.title}>
                   <div className="panel-heading">
@@ -1011,6 +1053,7 @@ function App() {
                 <h2>Guardrails</h2>
                 {warningList}
               </article>
+              <ClaimsReport inputs={modeled} results={r} review={claimReview} fmt={fmt} />
               {r.buildVsBuy.configured && (
                 <article className="panel span-2">
                   <h2>Build versus buy</h2>
@@ -1122,6 +1165,8 @@ function App() {
             results={r}
             fmt={fmt}
             onApply={update}
+            onClaim={claimTypes}
+            guardrailCount={guardrails.length}
           />
         )}
         {workspace.needsChoice && <WelcomeDialog onStartGuide={() => openGuide()} />}

@@ -46,6 +46,47 @@ All rates (adoption, realization, margin, contribution, probabilities) are clamp
 **Annual benefits** is the sum of all rows: the year-one recurring benefit. It drives the
 recurring benefit mix chart, time-to-market value, and the Actuals comparison.
 
+### Value claims
+
+Every benefit belongs to a value type, and a value type counts only while it is claimed on the
+Benefits page. The four original types (time saved, capacity and headcount, revenue influence, risk
+reduction) are claimed in the sample case and in drafts saved before v0.7.0; the others are opt-in.
+
+| Value type                     | Formula (year one)                                                                                                           | Default evidence |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| Hard cost reduction            | annual spend retired × share of the year after the contract exit month                                                       | Hard             |
+| Retention and expansion        | ARR in scope × net retention improvement × gross margin × attribution × adoption                                             | Soft             |
+| Cycle-time compression         | revenue through the process × gross margin × (days saved ÷ 365) × discount rate × adoption                                   | Soft             |
+| Cash acceleration              | billed revenue × (days faster ÷ 365) × adoption × discount rate                                                              | Semi-hard        |
+| Quality and rework             | (rework hours/month × 12 × loaded rate × realization + errors avoided × cost per error) × adoption                           | Soft             |
+| Compliance and audit readiness | audit prep hours × analyst rate × adoption + external audit fees that stop                                                   | Semi-hard        |
+| Employee ramp and retention    | (hires × weeks saved × productive hours/week × loaded rate × realization + departures avoided × replacement cost) × adoption | Soft             |
+| Forecast and decision quality  | annual cost of forecast misses × improvement × adoption                                                                      | Soft             |
+| Customer experience            | support contacts avoided × cost per contact × adoption                                                                       | Soft             |
+| Tech debt and consolidation    | maintenance hours retired × support rate + spend on retired tools                                                            | Semi-hard        |
+| Strategic optionality          | stated annual value; **reported only, never added to benefits, ROI, or NPV**                                                 | Soft (fixed)     |
+
+Design choices:
+
+- **Hard cost reduction** starts in the month the contracts end, not at go-live, in the annual
+  cash flows and in payback. It runs at the full rate from the following year.
+- **Cycle time and cash acceleration** are valued as timing, not new revenue: deals that close
+  sooner were going to close anyway. The benefit is margin (or cash) brought forward, priced at the
+  discount rate. Cash acceleration also reports the one-time working capital released, which is a
+  balance-sheet item and is not added to benefits.
+- **Evidence classes.** Each claim is hard (cash), semi-hard (a cost avoided against an existing
+  budget line), or soft (productivity, experience, attributed revenue). Users can override the
+  default. Soft claims are not haircut automatically, because their formulas already carry
+  realization, attribution, and adoption factors; instead the model reports an **evidence-backed
+  NPV and ROI** with every soft claim removed, which is the case a finance reviewer will underwrite.
+- **Claim review** (Benefits page and guardrails) flags: more than three claims; no hard or
+  semi-hard claim; a soft claim larger than the lead claim; claims without a baseline source; the
+  double-counting pairs (time saved vs recovered capacity, compliance vs risk, tech debt vs cost
+  reduction, customer experience vs retention, quality vs time saved, cycle time vs revenue
+  influence); a cost reduction with no exit date; a tech-debt claim on an application with high
+  technical risk; an idea-stage case without a pilot success threshold and kill criterion; and a
+  build case that ignores an available commercial product.
+
 ### One-time benefits
 
 Deferred hiring is a one-time saving: the loaded cost of each deferred hire is avoided only for the

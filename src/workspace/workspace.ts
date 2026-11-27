@@ -1,6 +1,7 @@
 import {
   BUILD_VS_BUY_CATEGORY,
   BUILD_VS_BUY_KEYS,
+  VALUE_CLAIM_KEYS,
   blankInputs,
   defaultAssumptions,
   defaultInputs,
@@ -35,12 +36,13 @@ export function blankDraft(): DraftState {
   return { caseName: '', inputs: { ...blankInputs }, scenario: 'Expected', assumptions: [] };
 }
 
-const SKIPPED_SAMPLE_KEYS = new Set<string>(BUILD_VS_BUY_KEYS);
+const SKIPPED_SAMPLE_KEYS = new Set<string>([...BUILD_VS_BUY_KEYS, ...VALUE_CLAIM_KEYS]);
 
 /**
  * True when a stored draft is the untouched sample case. Earlier versions saved the sample
  * on first load, so such a draft is not the user's work. Build-vs-buy inputs and assumptions are
- * ignored because drafts saved before 0.4.0 lack them and are migrated on load.
+ * ignored because drafts saved before 0.4.0 lack them and are migrated on load; value-claim inputs
+ * likewise for drafts saved before 0.7.0.
  */
 export function isSampleDraft(state: DraftState): boolean {
   if (state.caseName.trim()) return false;

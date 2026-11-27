@@ -102,6 +102,19 @@ export const GUIDE_STEPS: GuideStep[] = [
     ask: ['How many people will use it in year one?', 'What loaded rate does Finance accept?'],
   },
   {
+    id: 'benefits-claims',
+    section: 'Benefits',
+    title: 'Choose the value you will claim',
+    purpose:
+      'Switch on only the value types you will defend. Tag each as hard (cash), semi-hard (an avoided budget line), or soft (productivity or experience), and name the system its baseline comes from.',
+    examples: [],
+    ask: [
+      'Which one claim would survive a finance-minded reviewer? Lead with it.',
+      'Where does each baseline come from: CRM, finance, or ticketing?',
+      'Are any two claims counting the same hours or the same dollars?',
+    ],
+  },
+  {
     id: 'benefits-productivity',
     section: 'Benefits',
     title: 'Estimate time saved',
@@ -191,6 +204,204 @@ export const GUIDE_STEPS: GuideStep[] = [
     ],
     ask: ['Has Risk or Audit sized this exposure before?', 'What control does the tool add?'],
     when: has('risk'),
+  },
+  {
+    id: 'benefits-cost-reduction',
+    section: 'Benefits',
+    title: 'Claim hard cost reduction',
+    purpose:
+      'Spend that stops: licenses retired, tools consolidated, contractors released. It counts only from the month each contract ends.',
+    examples: [
+      {
+        key: 'costRetiredSpend',
+        value: 24_000,
+        why: 'Annual cost of the tools and contracts this replaces.',
+      },
+      {
+        key: 'costMonthsToExit',
+        value: 4,
+        why: 'Months until the renewal date. Nothing counts before it.',
+      },
+      {
+        key: 'baselineCostReduction',
+        value: 'Software ledger and contract register',
+        why: 'Finance will ask for the contract end date.',
+      },
+    ],
+    ask: [
+      'Which contracts are actually cancelled, and when do they end?',
+      'Does procurement agree the spend stops rather than moves?',
+    ],
+    when: has('costReduction'),
+  },
+  {
+    id: 'benefits-retention',
+    section: 'Benefits',
+    title: 'Estimate retention and expansion',
+    purpose:
+      'Credits a share of improved net revenue retention, at gross margin. Retention has many drivers, so the attribution share matters most.',
+    examples: [
+      { key: 'retentionArr', value: 2_000_000, why: 'ARR of the customers the tool touches.' },
+      { key: 'retentionLift', value: 0.01, why: 'One point of net retention is a real gain.' },
+      {
+        key: 'retentionAttribution',
+        value: 0.15,
+        why: 'Share earned by this tool, not by CS, product, or pricing.',
+      },
+    ],
+    ask: ['What is net revenue retention today, from the CRM or billing system?'],
+    when: has('retention'),
+  },
+  {
+    id: 'benefits-cycle-time',
+    section: 'Benefits',
+    title: 'Value cycle-time compression',
+    purpose:
+      'Deals that close sooner were going to close anyway, so the gain is timing: margin on the revenue, priced at the discount rate for the days saved.',
+    examples: [
+      {
+        key: 'cycleTimeRevenue',
+        value: 3_000_000,
+        why: 'Annual closed revenue that passes through the process.',
+      },
+      { key: 'cycleTimeDaysSaved', value: 10, why: 'Median days saved, from CRM stage history.' },
+    ],
+    ask: ['What is the median sales cycle today, and where does it stall?'],
+    when: has('cycleTime'),
+  },
+  {
+    id: 'benefits-cash',
+    section: 'Benefits',
+    title: 'Value cash acceleration',
+    purpose:
+      'Faster billing and collection release working capital once. The recurring benefit is the financing cost of that balance.',
+    examples: [
+      { key: 'cashAnnualBilled', value: 6_000_000, why: 'Annual billed revenue affected.' },
+      { key: 'cashDaysFaster', value: 5, why: 'Days off DSO or billing lag.' },
+    ],
+    ask: ['What is DSO today, and which step of quote-to-cash does the tool shorten?'],
+    when: has('cashAcceleration'),
+  },
+  {
+    id: 'benefits-quality',
+    section: 'Benefits',
+    title: 'Value quality and rework',
+    purpose:
+      'Rework hours and the direct cost of errors or escalations avoided. Needs a measured baseline.',
+    examples: [
+      { key: 'reworkHoursMonth', value: 40, why: 'Hours a month spent fixing errors today.' },
+      { key: 'errorsAvoidedYear', value: 24, why: 'Escalations or credits avoided per year.' },
+      { key: 'costPerError', value: 1_500, why: 'Credit, refund, or handling cost of one error.' },
+    ],
+    ask: ['Do you track error rate or rework today? If not, measure before claiming.'],
+    when: has('quality'),
+  },
+  {
+    id: 'benefits-compliance',
+    section: 'Benefits',
+    title: 'Value audit readiness',
+    purpose:
+      'Audit preparation effort and external fees that stop. Avoided fines belong under risk reduction.',
+    examples: [
+      { key: 'auditPrepHoursYear', value: 200, why: 'Evidence collection and prep hours saved.' },
+      {
+        key: 'auditExternalSavings',
+        value: 10_000,
+        why: 'Consultant or audit fees that stop.',
+      },
+    ],
+    ask: ['How many hours did the last audit take to prepare for?'],
+    when: has('compliance'),
+  },
+  {
+    id: 'benefits-talent',
+    section: 'Benefits',
+    title: 'Value faster ramp and retention',
+    purpose:
+      'New hires productive sooner and regretted departures avoided. Finance discounts this unless attrition is already a known problem.',
+    examples: [
+      { key: 'rampHiresYear', value: 12, why: 'New reps or staff hired each year.' },
+      { key: 'rampWeeksSaved', value: 2, why: 'Weeks sooner to full productivity.' },
+      { key: 'attritionAvoidedYear', value: 1, why: 'Only if attrition is a known problem.' },
+      { key: 'replacementCost', value: 40_000, why: 'Recruiting, ramp, and lost output.' },
+    ],
+    ask: ['How long does a new hire take to reach full productivity today?'],
+    when: has('talent'),
+  },
+  {
+    id: 'benefits-forecast',
+    section: 'Benefits',
+    title: 'Value forecast quality',
+    purpose:
+      'Prices a known cost of forecast misses, such as over-hiring or expediting, and the share the tool removes.',
+    examples: [
+      { key: 'forecastMissCost', value: 100_000, why: 'What last year’s misses cost.' },
+      { key: 'forecastImprovement', value: 0.1, why: 'Share of that cost the tool removes.' },
+    ],
+    ask: ['What did the last forecast miss cost, and who measured it?'],
+    when: has('forecast'),
+  },
+  {
+    id: 'benefits-cx',
+    section: 'Benefits',
+    title: 'Value customer experience',
+    purpose: 'Cost to serve: support contacts avoided. Churn effects belong under retention.',
+    examples: [
+      { key: 'cxContactsAvoidedYear', value: 2_000, why: 'Tickets or calls avoided per year.' },
+      { key: 'cxCostPerContact', value: 8, why: 'Fully loaded cost of one contact.' },
+    ],
+    ask: ['What do contacts per customer and cost per contact look like in the ticketing system?'],
+    when: has('customerExperience'),
+  },
+  {
+    id: 'benefits-tech-debt',
+    section: 'Benefits',
+    title: 'Value tech debt retired',
+    purpose:
+      'Maintenance hours and spend on integrations and shadow IT that this replaces. This app’s own upkeep is already in TCO.',
+    examples: [
+      { key: 'techDebtHoursYear', value: 150, why: 'Hours a year spent on what is retired.' },
+      { key: 'techDebtRetiredSpend', value: 6_000, why: 'Hosting or licenses of retired tools.' },
+    ],
+    ask: ['Which integrations or tools are switched off, and when?'],
+    when: has('techDebt'),
+  },
+  {
+    id: 'benefits-strategic',
+    section: 'Benefits',
+    title: 'State the strategic argument',
+    purpose:
+      'Reusable platform, data asset, or AI readiness. Reported beside the case and never added to ROI.',
+    examples: [
+      {
+        key: 'strategicAnnualValue',
+        value: 50_000,
+        why: 'Illustrative only; it will not change ROI.',
+      },
+    ],
+    ask: ['What would this make possible that is not possible today?'],
+    when: has('strategic'),
+  },
+  {
+    id: 'benefits-proof',
+    section: 'Benefits',
+    title: 'Set a pilot threshold and kill criterion',
+    purpose:
+      'With nothing built yet, every number is an estimate. A stated kill criterion earns more trust than a big headline number.',
+    examples: [
+      {
+        key: 'pilotSuccessThreshold',
+        value: 'A 10-person pilot saves at least 25 minutes per user per week over six weeks.',
+        why: 'Measurable, time-boxed, and tied to the lead claim.',
+      },
+      {
+        key: 'killCriterion',
+        value: 'Stop if adoption is below 40% after 90 days.',
+        why: 'The result that ends the initiative.',
+      },
+    ],
+    ask: ['What result in the pilot would make you stop?'],
+    when: (a) => a.stage !== 'live',
   },
   {
     id: 'tco-build',

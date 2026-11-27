@@ -12,25 +12,25 @@ governance, and technical debt. On the other side, internal tools create value t
 ROI models miss: recovered capacity, avoided hiring, faster reporting, and reduced risk.
 Business Case Studio puts both sides in one transparent model.
 
-> **Status:** early MVP (v0.6.0). Runs entirely in the browser with no backend. Your model is
+> **Status:** early MVP (v0.7.0). Runs entirely in the browser with no backend. Your model is
 > autosaved in this browser only; use **Save file** to keep or share it as JSON. Default numbers are
 > illustrative — replace them with your own approved assumptions.
 
 ## Features
 
-| Section              | What it does                                                                                                                                                                            |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Overview**         | ROI, TCO, NPV, payback, benefit-cost ratio with "how is this calculated" explanations; cumulative value chart, benefit mix, model confidence, and guardrail warnings                    |
-| **Profile**          | Initiative name, sponsor, currency, horizon, discount rate, growth rates, user segments, and loaded labor rates                                                                         |
-| **Benefits**         | Productivity, management, reconciliation, recovered capacity, contractor avoidance, one-time deferred hiring, revenue influence, opportunity coverage, and risk reduction               |
-| **TCO**              | Build labor (discovery through launch), run platform, support, maintenance, enhancements, governance, security, training, and a technical-debt reserve                                  |
-| **Build vs Buy**     | Commercial-alternative TCO, NPV and ROI on the same horizon and discount rate, benefit-fit adjustment, build/buy/close-call verdict, non-financial checklist, and vendor-evidence check |
-| **AI Development**   | Token economics, subscriptions, human oversight hours, traditional-build comparison, and time-to-market value                                                                           |
-| **Technical Health** | Ten-dimension maintainability score that drives a risk rating and a suggested technical-debt reserve                                                                                    |
-| **Scenarios**        | Conservative / Expected / Upside comparison and a tornado sensitivity analysis (NPV or ROI, ±10–30%)                                                                                    |
-| **Assumptions**      | Editable register: add, edit, and remove assumptions with owner, source, confidence, and approval status                                                                                |
-| **Actuals**          | Forecast-versus-actual variance, initial-investment variance, payback progress, and ROI at the actual run rate                                                                          |
-| **Reports**          | Executive summary, key metrics, build-vs-buy summary, calculation trace, save and open case files (JSON), cash-flow CSV, and print / Save as PDF                                        |
+| Section              | What it does                                                                                                                                                                                                                                                                                                         |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Overview**         | ROI, TCO, NPV, payback, benefit-cost ratio with "how is this calculated" explanations; cumulative value chart, benefit mix, model confidence, and guardrail warnings                                                                                                                                                 |
+| **Profile**          | Initiative name, sponsor, currency, horizon, discount rate, growth rates, user segments, and loaded labor rates                                                                                                                                                                                                      |
+| **Benefits**         | Choose which of 15 value types to claim (time, capacity, revenue, risk, hard cost reduction, retention, cycle time, cash acceleration, quality, compliance, ramp, forecast, CX, tech debt, strategic optionality), tag each hard, semi-hard, or soft with its baseline source, and review claims for double counting |
+| **TCO**              | Build labor (discovery through launch), run platform, support, maintenance, enhancements, governance, security, training, and a technical-debt reserve                                                                                                                                                               |
+| **Build vs Buy**     | Commercial-alternative TCO, NPV and ROI on the same horizon and discount rate, benefit-fit adjustment, build/buy/close-call verdict, non-financial checklist, and vendor-evidence check                                                                                                                              |
+| **AI Development**   | Token economics, subscriptions, human oversight hours, traditional-build comparison, and time-to-market value                                                                                                                                                                                                        |
+| **Technical Health** | Ten-dimension maintainability score that drives a risk rating and a suggested technical-debt reserve                                                                                                                                                                                                                 |
+| **Scenarios**        | Conservative / Expected / Upside comparison and a tornado sensitivity analysis (NPV or ROI, ±10–30%)                                                                                                                                                                                                                 |
+| **Assumptions**      | Editable register: add, edit, and remove assumptions with owner, source, confidence, and approval status                                                                                                                                                                                                             |
+| **Actuals**          | Forecast-versus-actual variance, initial-investment variance, payback progress, and ROI at the actual run rate                                                                                                                                                                                                       |
+| **Reports**          | Executive summary, key metrics, build-vs-buy summary, calculation trace, save and open case files (JSON), cash-flow CSV, and print / Save as PDF                                                                                                                                                                     |
 
 **Guided walkthrough.** Open **Guide** in the header at any time. Five setup questions (who you
 are presenting to, the initiative's stage, which kinds of value you will claim, whether it is

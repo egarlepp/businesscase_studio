@@ -1,5 +1,6 @@
 import type { Section } from '../ui/fields';
 import type { ScenarioName } from '../types';
+import { VALUE_TYPES, type ValueTypeId } from '../data/valueTypes';
 
 /**
  * Pitch audiences: who the business case is being presented to.
@@ -11,30 +12,11 @@ export type AudienceId =
   'it-manager' | 'cio' | 'cfo' | 'cro' | 'coo' | 'ciso' | 'board' | 'general';
 
 /** The kinds of value an initiative can claim. Each maps to one Benefits panel. */
-export type ValueLever = 'productivity' | 'capacity' | 'revenue' | 'risk';
+export type ValueLever = ValueTypeId;
 
-export const VALUE_LEVERS: { id: ValueLever; label: string; hint: string }[] = [
-  {
-    id: 'productivity',
-    label: 'Time saved',
-    hint: 'People spend fewer hours on the work today.',
-  },
-  {
-    id: 'capacity',
-    label: 'Capacity and headcount',
-    hint: 'Contractor hours avoided, hires deferred, capacity redeployed.',
-  },
-  {
-    id: 'revenue',
-    label: 'Revenue influence',
-    hint: 'Higher win rates or more opportunities in the sales pipeline.',
-  },
-  {
-    id: 'risk',
-    label: 'Risk reduction',
-    hint: 'Lower chance or cost of an error, breach, fine, or outage.',
-  },
-];
+export const VALUE_LEVERS: { id: ValueLever; label: string; hint: string }[] = VALUE_TYPES.map(
+  (t) => ({ id: t.id, label: t.label, hint: t.hint }),
+);
 
 export interface Audience {
   id: AudienceId;
@@ -48,8 +30,15 @@ export interface Audience {
   headlineMetrics: string[];
   /** Pages this audience will scrutinize; the guide marks them and the nav shows a dot. */
   focusSections: Section[];
-  /** Value levers this audience usually expects to see. Pre-selects the guide's question. */
+  /**
+   * The claims to pre-select in the guide: a lead claim plus one or two supporting claims, so the
+   * default never trips the too-many-claims guardrail.
+   */
   defaultLevers: ValueLever[];
+  /** Value types that land with this audience, most persuasive first. Marked in the pickers. */
+  recommendedClaims: ValueTypeId[];
+  /** Why those claims land, in one or two sentences. */
+  claimAdvice: string;
   /** The modeling scenario to lead with when presenting. */
   leadScenario: ScenarioName;
   scenarioAdvice: string;
@@ -74,7 +63,10 @@ export const AUDIENCES: Audience[] = [
       'initialCost',
     ],
     focusSections: ['TCO', 'AI Development', 'Technical Health', 'Build vs Buy'],
-    defaultLevers: ['productivity', 'capacity'],
+    defaultLevers: ['productivity', 'techDebt'],
+    recommendedClaims: ['techDebt', 'quality', 'productivity', 'costReduction'],
+    claimAdvice:
+      'An IT manager scores a case on what it removes from their estate: integrations, maintenance hours, and rework. Net any tech-debt claim against this application’s own upkeep.',
     leadScenario: 'Expected',
     scenarioAdvice: 'Then show that the run cost and support hours still hold in Conservative.',
     storyline: [
@@ -115,7 +107,10 @@ export const AUDIENCES: Audience[] = [
     decision: 'Does this deserve portfolio funding, and is it sustainable architecture?',
     headlineMetrics: ['npv', 'totalCosts', 'technicalHealthScore', 'npvAdvantageOfBuild'],
     focusSections: ['TCO', 'Build vs Buy', 'Technical Health', 'AI Development', 'Scenarios'],
-    defaultLevers: ['productivity', 'capacity', 'risk'],
+    defaultLevers: ['costReduction', 'techDebt', 'risk'],
+    recommendedClaims: ['costReduction', 'techDebt', 'risk', 'compliance', 'strategic'],
+    claimAdvice:
+      'Lead with licenses and tools retired, then consolidation. Strategic optionality can close the pitch but never carries it.',
     leadScenario: 'Expected',
     scenarioAdvice:
       'Show all three scenarios side by side; a CIO wants the range, not a single number.',
@@ -156,7 +151,16 @@ export const AUDIENCES: Audience[] = [
     decision: 'Is the return real, risk-adjusted, and better than other uses of the money?',
     headlineMetrics: ['npv', 'roi', 'paybackMonths', 'totalCosts', 'benefitCostRatio'],
     focusSections: ['Profile', 'Benefits', 'TCO', 'Scenarios', 'Assumptions', 'Actuals'],
-    defaultLevers: ['productivity', 'capacity'],
+    defaultLevers: ['costReduction', 'capacity', 'cashAcceleration'],
+    recommendedClaims: [
+      'costReduction',
+      'cashAcceleration',
+      'capacity',
+      'compliance',
+      'productivity',
+    ],
+    claimAdvice:
+      'Finance underwrites cash first, then avoided budget lines. Lead with the hardest claim and expect soft claims to be discounted or deleted.',
     leadScenario: 'Conservative',
     scenarioAdvice: 'If the case works there, Expected and Upside become credibility, not hope.',
     storyline: [
@@ -199,7 +203,10 @@ export const AUDIENCES: Audience[] = [
     decision: 'Will this help my team win more, faster, and is it worth their attention?',
     headlineMetrics: ['winRate', 'opportunityCoverage', 'productivity', 'paybackMonths'],
     focusSections: ['Benefits', 'Scenarios', 'Actuals'],
-    defaultLevers: ['revenue', 'productivity'],
+    defaultLevers: ['revenue', 'cycleTime', 'talent'],
+    recommendedClaims: ['cycleTime', 'talent', 'forecast', 'retention', 'revenue', 'productivity'],
+    claimAdvice:
+      'Beyond time saved and revenue influence, the claims that land are cycle time, ramp time for new reps, forecast accuracy, and retention or expansion. All four tie to quota coverage and attainment.',
     leadScenario: 'Expected',
     scenarioAdvice: 'Show the revenue line on its own; a CRO discounts productivity claims.',
     storyline: [
@@ -229,7 +236,7 @@ export const AUDIENCES: Audience[] = [
     ],
     emphasis: {
       Benefits:
-        'Fill Revenue influence first. Keep application contribution modest (10–20%) without pilot data.',
+        'Fill Revenue influence first. Keep application contribution modest (10–20%) without pilot data. Add cycle time, rep ramp, forecast accuracy, or retention where you have a CRM baseline.',
       Actuals: 'Plan to report adoption and win-rate change each quarter.',
     },
   },
@@ -240,7 +247,10 @@ export const AUDIENCES: Audience[] = [
     decision: 'Does this make the process faster and cheaper, and can my teams absorb the change?',
     headlineMetrics: ['equivalentFte', 'productivity', 'contractorAvoidance', 'paybackMonths'],
     focusSections: ['Profile', 'Benefits', 'Actuals'],
-    defaultLevers: ['productivity', 'capacity'],
+    defaultLevers: ['productivity', 'capacity', 'quality'],
+    recommendedClaims: ['productivity', 'quality', 'capacity', 'cycleTime', 'customerExperience'],
+    claimAdvice:
+      'Operations leaders trust hours, error rates, and throughput they already track. Show capacity in FTE and claim each hour once.',
     leadScenario: 'Expected',
     scenarioAdvice: 'Show recovered capacity in FTE, not only dollars.',
     storyline: [
@@ -276,7 +286,10 @@ export const AUDIENCES: Audience[] = [
     decision: 'Does this reduce risk, and does building it introduce new exposure?',
     headlineMetrics: ['riskReduction', 'technicalHealthScore', 'annualRunCost', 'totalCosts'],
     focusSections: ['Benefits', 'TCO', 'Technical Health', 'AI Development', 'Assumptions'],
-    defaultLevers: ['risk', 'productivity'],
+    defaultLevers: ['risk', 'compliance'],
+    recommendedClaims: ['risk', 'compliance', 'quality'],
+    claimAdvice:
+      'Size avoided losses under risk and audit effort under compliance, never the same finding twice.',
     leadScenario: 'Conservative',
     scenarioAdvice: 'Risk audiences distrust optimistic cases.',
     storyline: [
@@ -314,7 +327,10 @@ export const AUDIENCES: Audience[] = [
     decision: 'Is this a sound use of capital that fits strategy, with risk understood?',
     headlineMetrics: ['npv', 'paybackMonths', 'roi', 'totalCosts'],
     focusSections: ['Overview', 'Scenarios', 'Build vs Buy', 'Reports'],
-    defaultLevers: ['productivity', 'capacity', 'revenue', 'risk'],
+    defaultLevers: ['costReduction', 'revenue', 'risk'],
+    recommendedClaims: ['costReduction', 'retention', 'revenue', 'risk', 'strategic'],
+    claimAdvice:
+      'Boards want one hard number and the strategic reason. Use strategic optionality as the argument on top, never as the core case.',
     leadScenario: 'Conservative',
     scenarioAdvice: 'Conservative is the floor, Expected the plan. Keep Upside as a footnote.',
     storyline: [
@@ -351,6 +367,8 @@ export const AUDIENCES: Audience[] = [
     headlineMetrics: ['roi', 'npv', 'paybackMonths', 'totalCosts'],
     focusSections: ['Profile', 'Benefits', 'TCO'],
     defaultLevers: ['productivity'],
+    recommendedClaims: ['productivity', 'costReduction', 'quality'],
+    claimAdvice: 'Start with one claim you can measure today, ideally a hard one.',
     leadScenario: 'Expected',
     scenarioAdvice: 'Revisit once you know your audience.',
     storyline: [

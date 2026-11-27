@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { defaultInputs } from '../data/defaults';
 import type { Inputs } from '../types';
+import { VALUE_TYPE_IDS, claimKey, getValueType } from '../data/valueTypes';
 import { fieldLocation } from '../ui/fields';
 import { calculateBusinessCase } from './engine';
 import { FORMULAS, getFormula } from './formulas';
@@ -13,6 +14,12 @@ const numericKeys = (Object.keys(defaultInputs) as (keyof Inputs)[]).filter(
 const PROBES: Record<string, Partial<Inputs>> = {
   // 30 months sits inside the 36-month horizon; perturbing either side crosses the cap.
   hiringDeferral: { monthsDeferred: 30 },
+  // The additional value types are not claimed in the sample case; claim each to observe it.
+  ...Object.fromEntries(
+    VALUE_TYPE_IDS.filter((id) => !getValueType(id).core).map((id) => [id, { [claimKey(id)]: 1 }]),
+  ),
+  strategicValue: { claimStrategic: 1 },
+  workingCapitalReleased: { claimCashAcceleration: 1 },
 };
 
 /** Change a value enough to move any formula that reads it. */

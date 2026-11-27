@@ -1,4 +1,17 @@
 import type { AssumptionItem, Inputs, ScenarioName } from '../types';
+import {
+  BASELINE_KEYS,
+  CLAIM_KEYS,
+  EVIDENCE_KEYS,
+  VALUE_TYPES,
+  claimInputs,
+  type ValueTypeId,
+} from './valueTypes';
+
+/** Value types claimed by the sample case and by drafts saved before v0.6.0. */
+export const CORE_VALUE_TYPES: readonly ValueTypeId[] = VALUE_TYPES.filter((t) => t.core).map(
+  (t) => t.id,
+);
 
 export const defaultInputs: Inputs = {
   applicationName: 'Internal Workflow Application',
@@ -39,6 +52,42 @@ export const defaultInputs: Inputs = {
   riskExposure: 150000,
   riskProbability: 0.2,
   riskReduction: 0.25,
+  // Illustrative figures for the additional value types. They are not claimed in the sample, so
+  // they do not change its results until a claim is switched on.
+  costRetiredSpend: 24000,
+  costMonthsToExit: 4,
+  retentionArr: 2_000_000,
+  retentionLift: 0.01,
+  retentionAttribution: 0.15,
+  cycleTimeRevenue: 3_000_000,
+  cycleTimeDaysSaved: 10,
+  cashAnnualBilled: 6_000_000,
+  cashDaysFaster: 5,
+  reworkHoursMonth: 40,
+  errorsAvoidedYear: 24,
+  costPerError: 1500,
+  auditPrepHoursYear: 200,
+  auditExternalSavings: 10000,
+  rampHiresYear: 12,
+  rampWeeksSaved: 2,
+  attritionAvoidedYear: 1,
+  replacementCost: 40000,
+  forecastMissCost: 100000,
+  forecastImprovement: 0.1,
+  cxContactsAvoidedYear: 2000,
+  cxCostPerContact: 8,
+  techDebtHoursYear: 150,
+  techDebtRetiredSpend: 6000,
+  strategicAnnualValue: 50000,
+  pilotSuccessThreshold:
+    'A 10-person pilot saves at least 25 minutes per user per week over six weeks.',
+  killCriterion: 'Stop if adoption is below 40% after 90 days.',
+  ...claimInputs(CORE_VALUE_TYPES, {
+    productivity: 'Time study of 12 users, before and after',
+    capacity: 'Contractor invoices, last 12 months',
+    revenue: 'CRM opportunity history',
+    risk: 'Operational risk register',
+  }),
   initialLaborHours: 650,
   initialLaborRate: 95,
   discoveryHours: 60,
@@ -159,6 +208,45 @@ export const BUILD_VS_BUY_KEYS = [
   'bvbSecurity',
 ] as const satisfies readonly (keyof Inputs)[];
 
+/** Inputs for the additional value types (v0.6.0). Drafts saved earlier have none of them. */
+export const VALUE_TYPE_DRIVER_KEYS = [
+  'costRetiredSpend',
+  'costMonthsToExit',
+  'retentionArr',
+  'retentionLift',
+  'retentionAttribution',
+  'cycleTimeRevenue',
+  'cycleTimeDaysSaved',
+  'cashAnnualBilled',
+  'cashDaysFaster',
+  'reworkHoursMonth',
+  'errorsAvoidedYear',
+  'costPerError',
+  'auditPrepHoursYear',
+  'auditExternalSavings',
+  'rampHiresYear',
+  'rampWeeksSaved',
+  'attritionAvoidedYear',
+  'replacementCost',
+  'forecastMissCost',
+  'forecastImprovement',
+  'cxContactsAvoidedYear',
+  'cxCostPerContact',
+  'techDebtHoursYear',
+  'techDebtRetiredSpend',
+  'strategicAnnualValue',
+  'pilotSuccessThreshold',
+  'killCriterion',
+] as const satisfies readonly (keyof Inputs)[];
+
+/** Every input added for value claims (v0.6.0): drivers plus claim, evidence, and baseline. */
+export const VALUE_CLAIM_KEYS: readonly (keyof Inputs)[] = [
+  ...VALUE_TYPE_DRIVER_KEYS,
+  ...CLAIM_KEYS,
+  ...EVIDENCE_KEYS,
+  ...BASELINE_KEYS,
+];
+
 /** Assumption-register category that records evidence for the commercial alternative. */
 export const BUILD_VS_BUY_CATEGORY = 'Build vs buy';
 
@@ -227,6 +315,17 @@ const scenarioMultipliers: Record<ScenarioName, Partial<Record<keyof Inputs, num
     incrementalWinRate: 0.5,
     contributionRate: 0.75,
     additionalOpportunities: 0.7,
+    costMonthsToExit: 1.5,
+    retentionLift: 0.5,
+    retentionAttribution: 0.75,
+    cycleTimeDaysSaved: 0.7,
+    reworkHoursMonth: 0.8,
+    errorsAvoidedYear: 0.8,
+    rampWeeksSaved: 0.7,
+    attritionAvoidedYear: 0.5,
+    forecastImprovement: 0.5,
+    cxContactsAvoidedYear: 0.7,
+    techDebtHoursYear: 0.8,
     annualMaintenance: 1.2,
     annualEnhancements: 1.2,
     technicalDebtReserveRate: 1.2,
@@ -239,6 +338,17 @@ const scenarioMultipliers: Record<ScenarioName, Partial<Record<keyof Inputs, num
     incrementalWinRate: 1.5,
     contributionRate: 1.15,
     additionalOpportunities: 1.25,
+    costMonthsToExit: 0.75,
+    retentionLift: 1.25,
+    retentionAttribution: 1.15,
+    cycleTimeDaysSaved: 1.25,
+    reworkHoursMonth: 1.15,
+    errorsAvoidedYear: 1.15,
+    rampWeeksSaved: 1.25,
+    attritionAvoidedYear: 1.25,
+    forecastImprovement: 1.25,
+    cxContactsAvoidedYear: 1.2,
+    techDebtHoursYear: 1.15,
     annualMaintenance: 0.9,
     technicalDebtReserveRate: 0.85,
   },
@@ -256,6 +366,9 @@ export const RATE_KEYS = [
   'riskReduction',
   'actualAdoptionRate',
   'buyBenefitFit',
+  'retentionLift',
+  'retentionAttribution',
+  'forecastImprovement',
 ] as const satisfies readonly (keyof Inputs)[];
 
 export const SCENARIOS: readonly ScenarioName[] = ['Conservative', 'Expected', 'Upside'];
