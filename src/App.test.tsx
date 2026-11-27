@@ -179,6 +179,22 @@ describe('App', () => {
     ).toHaveAttribute('aria-pressed', 'true');
   });
 
+  it('copies an AI briefing pack tuned to the chosen audience', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await goTo(user, 'Reports');
+    const panel = within(screen.getByRole('article', { name: 'AI briefing pack' }));
+    await user.selectOptions(panel.getByLabelText('Audience'), 'cfo');
+    await user.selectOptions(panel.getByLabelText('Ask the assistant for'), 'deck');
+    await user.click(panel.getByRole('button', { name: 'Copy pack' }));
+    expect(panel.getByRole('status')).toHaveTextContent('Copied.');
+    const copied = await navigator.clipboard.readText();
+    expect(copied).toContain('# AI briefing pack:');
+    expect(copied).toContain('The audience is CFO / Finance');
+    expect(copied).toContain('(.pptx)');
+    expect(copied).toContain('## Facts');
+  });
+
   it('reports an invalid import and keeps the current model', async () => {
     const user = userEvent.setup();
     const confirm = vi.spyOn(window, 'confirm');

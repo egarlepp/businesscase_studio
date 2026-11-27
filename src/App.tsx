@@ -76,6 +76,7 @@ import { getAudience } from './guide/audiences';
 import { stepsFor } from './guide/steps';
 import { emptyGuideState, loadGuideState, saveGuideState, type GuideState } from './guide/storage';
 import { AudienceBriefing } from './ui/components/AudienceBriefing';
+import { BriefingPackPanel } from './ui/components/BriefingPackPanel';
 import { ModuleNotice, ScopePanel, ScopeReport } from './ui/components/Scope';
 import { isSectionOff, moduleForSection } from './data/scope';
 import { ClaimsReport, ValueClaimsPanel } from './ui/components/ValueClaims';
@@ -232,7 +233,10 @@ function App() {
     () => reviewClaims(modeled, r, { stage, buyOption }),
     [modeled, r, stage, buyOption],
   );
-  const guardrails = [...r.warnings, ...claimReview.warnings];
+  const guardrails = useMemo(
+    () => [...r.warnings, ...claimReview.warnings],
+    [r.warnings, claimReview.warnings],
+  );
   const offPageCount = SECTIONS.filter(([name]) => isSectionOff(base, name)).length;
 
   // Only lines with value: unclaimed value types would otherwise fill the chart with zeros.
@@ -1197,6 +1201,18 @@ function App() {
                   onChangeAudience={() => openGuide(true)}
                 />
               )}
+              <BriefingPackPanel
+                key={audience?.id ?? 'none'}
+                caseName={caseName}
+                inputs={base}
+                scenario={scenario}
+                assumptions={assumptions}
+                defaultAudience={audience?.id ?? null}
+                guardrails={guardrails}
+                hasFigures={hasFigures}
+                appVersion={APP_VERSION}
+                fileBase={fileBase}
+              />
               <ScopeReport inputs={base} />
               <article className="panel">
                 <PanelTitle icon={Sigma}>Key metrics</PanelTitle>

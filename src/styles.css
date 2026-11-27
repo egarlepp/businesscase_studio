@@ -2205,3 +2205,38 @@ tbody th {
 .sidebar-tools .tooltip-bubble {
   max-width: 210px;
 }
+.secondary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.briefing-pack .field-grid {
+  margin-top: 4px;
+}
+.briefing-pack .field-hint {
+  margin: 10px 0 0;
+}
+.pack-preview {
+  margin-top: 4px;
+  border-top: 1px solid var(--border-soft);
+  padding-top: 12px;
+  font-size: 13px;
+}
+.pack-preview summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+.pack-preview pre {
+  margin: 10px 0 0;
+  max-height: 420px;
+  overflow: auto;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-muted);
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
