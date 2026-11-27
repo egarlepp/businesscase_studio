@@ -1938,10 +1938,38 @@ tbody th {
   gap: 8px;
   align-items: center;
 }
+/* Two rows of four questions. Each question spans three subgrid rows (label, select, hint), so
+   selects line up across a row however long the labels and hints are. */
 .scope-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 14px 18px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px 20px;
+}
+.scope-field {
+  display: grid;
+  grid-row: span 3;
+  grid-template-rows: subgrid;
+  min-width: 0;
+}
+.scope-field > label {
+  align-self: end;
+  font-size: 12px;
+  font-weight: 700;
+  color: #5c6577;
+  line-height: 1.35;
+}
+.scope-field > .field-hint {
+  margin-bottom: 14px;
+}
+@media (max-width: 1100px) {
+  .scope-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 760px) {
+  .scope-grid {
+    grid-template-columns: 1fr;
+  }
 }
 .field-hint {
   font-size: 12px;

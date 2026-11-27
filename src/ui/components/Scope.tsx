@@ -44,7 +44,7 @@ export function ScopePanel({ inputs, onChange }: { inputs: Inputs; onChange: OnC
         {SCOPE_QUESTIONS.map((q) => {
           const id = `scope-${q.key}`;
           return (
-            <div className="field" key={q.key}>
+            <div className="scope-field" key={q.key}>
               <label htmlFor={id}>{q.label}</label>
               <select
                 id={id}
