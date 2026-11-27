@@ -16,6 +16,13 @@ Business Case Studio puts both sides in one transparent model.
 > autosaved in this browser only; use **Save file** to keep or share it as JSON. Default numbers are
 > illustrative — replace them with your own approved assumptions.
 
+![Overview dashboard in demo mode: ROI, TCO, NPV, and payback with the cumulative value chart, business-case quality, and guardrails](docs/screenshots/01-overview-dashboard.png)
+
+![Scenarios and sensitivity in demo mode: Conservative, Expected, and Upside comparison with a tornado chart](docs/screenshots/04-scenarios-and-sensitivity.png)
+
+_Screenshots show the built-in demo data (toggle **Demo data** in the header). More in
+[docs/screenshots](docs/screenshots)._
+
 ## Features
 
 | Section              | What it does                                                                                                                                                                                                                                                                                                         |

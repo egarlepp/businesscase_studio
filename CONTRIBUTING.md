@@ -41,6 +41,10 @@ npm run check
   Changes should be defensible and should not inflate ROI.
 - **No confidential data.** Do not include real company figures in code, tests, issues, or
   screenshots.
+- **Screenshots** live in `docs/screenshots` and are shown in filename order, with the caption taken
+  from the filename: `03-build-vs-buy.png` is captioned "Build vs buy" (number dropped, dashes become
+  spaces). Use two-digit prefixes (`01-`, not `1-`) so `10-` sorts after `09-`, and capture them in
+  demo mode.
 - **Releases need notes.** When you bump `version` in `package.json`, update `APP_VERSION` in
   `src/version.ts` and add an entry at the top of `src/data/changelog.ts`. The "What's new" dialog
   reads it, and `changelog.test.ts` fails if the newest entry does not match the app version.
