@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
@@ -81,6 +81,40 @@ describe('App', () => {
     await user.click(group.getByRole('button', { name: 'Upside' }));
     expect(group.getByRole('button', { name: 'Upside' })).toHaveAttribute('aria-pressed', 'true');
     expect(roiCard()).toHaveTextContent('87.7%');
+  });
+
+  it('explains each scenario and the confidence score in keyboard-accessible tooltips', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const group = within(screen.getByRole('group', { name: 'Scenario' }));
+    expect(group.getByRole('button', { name: 'Conservative' })).toHaveAccessibleDescription(
+      /Adoption rate −20%/,
+    );
+    expect(group.getByRole('button', { name: 'Expected' })).toHaveAccessibleDescription(
+      /exactly as entered/,
+    );
+    const confidence = screen.getByLabelText(/model confidence/);
+    expect(confidence).toHaveAccessibleDescription(/base of 55 points/);
+    const tip = document.getElementById(confidence.getAttribute('aria-describedby')!)!;
+    expect(tip).toHaveAttribute('data-open', 'false');
+    act(() => confidence.focus());
+    expect(tip).toHaveAttribute('data-open', 'true');
+    await user.keyboard('{Escape}');
+    expect(tip).toHaveAttribute('data-open', 'false');
+  });
+
+  it('explains a field with a Google search link from its info icon', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await goTo(user, 'Profile');
+    const info = screen.getByRole('button', { name: 'About Discount rate' });
+    expect(info).toHaveAccessibleDescription(/cost of capital/);
+    const tip = document.getElementById(info.getAttribute('aria-describedby')!)!;
+    await user.hover(info);
+    expect(tip).toHaveAttribute('data-open', 'true');
+    const link = within(tip).getByRole('link', { name: /Search Google/ });
+    expect(link).toHaveAttribute('href', expect.stringContaining('google.com/search?q=discount'));
+    expect(link).toHaveAttribute('target', '_blank');
   });
 
   it('formats money in the selected currency', async () => {

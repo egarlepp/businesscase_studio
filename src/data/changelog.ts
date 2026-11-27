@@ -16,6 +16,16 @@ export interface Release {
 
 export const CHANGELOG: readonly Release[] = [
   {
+    version: '0.5.1',
+    date: '2026-11-27',
+    title: 'Field, scenario, and confidence explanations',
+    changes: [
+      'Every input field has an info icon beside its label. Hover, focus, or tap it for a short explanation and a Search Google link that opens a web search for the term in a new tab.',
+      'Hover, focus, or tap Conservative, Expected, or Upside to see exactly which inputs each scenario adjusts and by how much.',
+      'Hover, focus, or tap the model confidence block in the sidebar to see how the score is built, what a high or low value means, and how technical risk is rated.',
+    ],
+  },
+  {
     version: '0.5.0',
     date: '2026-11-27',
     title: 'Guided walkthrough, audiences, and blank start',
