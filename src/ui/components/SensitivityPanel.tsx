@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { Tornado } from 'lucide-react';
+import { PanelTitle } from './PanelTitle';
 import {
   Bar,
   BarChart,
@@ -10,6 +12,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { useChartColors } from '../../theme/theme';
 import { runSensitivity, type SensitivityMetric } from '../../calculations/sensitivity';
 import type { Inputs } from '../../types';
 import { fieldLocation } from '../fields';
@@ -25,6 +28,7 @@ interface SensitivityPanelProps {
 }
 
 export function SensitivityPanel({ inputs, fmt }: SensitivityPanelProps) {
+  const colors = useChartColors();
   const [metric, setMetric] = useState<SensitivityMetric>('npv');
   const [range, setRange] = useState<number>(0.2);
   const result = useMemo(() => runSensitivity(inputs, metric, range), [inputs, metric, range]);
@@ -43,7 +47,7 @@ export function SensitivityPanel({ inputs, fmt }: SensitivityPanelProps) {
     <article className="panel span-2">
       <div className="panel-heading">
         <div>
-          <h2>Sensitivity (tornado)</h2>
+          <PanelTitle icon={Tornado}>Sensitivity (tornado)</PanelTitle>
           <p>
             Change in {metric === 'npv' ? 'NPV' : 'ROI'} when each driver moves ±{pctLabel}, all
             else held at the selected scenario. Base: {show(result.base)}.
@@ -81,20 +85,20 @@ export function SensitivityPanel({ inputs, fmt }: SensitivityPanelProps) {
                 <YAxis type="category" dataKey="name" width={190} />
                 <Tooltip formatter={(v) => showDelta(Number(v))} />
                 <Legend />
-                <ReferenceLine x={0} stroke="#525b6e" />
+                <ReferenceLine x={0} stroke={colors.reference} />
                 <Bar
                   isAnimationActive={false}
                   dataKey="down"
                   name={`Driver −${pctLabel}`}
                   stackId="t"
-                  fill="#c2410c"
+                  fill={colors.costs}
                 />
                 <Bar
                   isAnimationActive={false}
                   dataKey="up"
                   name={`Driver +${pctLabel}`}
                   stackId="t"
-                  fill="#2f7d5b"
+                  fill={colors.benefits}
                 />
               </BarChart>
             </ResponsiveContainer>

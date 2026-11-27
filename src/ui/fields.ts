@@ -1,3 +1,36 @@
+import {
+  BadgeCheck,
+  Banknote,
+  Building2,
+  CalendarClock,
+  ClipboardCheck,
+  Code2,
+  Coins,
+  Compass,
+  FlaskConical,
+  Gauge,
+  GraduationCap,
+  Hammer,
+  HeartPulse,
+  IdCard,
+  Landmark,
+  LineChart,
+  ListChecks,
+  PiggyBank,
+  Repeat,
+  Server,
+  ShieldAlert,
+  ShoppingCart,
+  SlidersHorizontal,
+  Smile,
+  Target,
+  Timer,
+  TrendingUp,
+  UserCheck,
+  Users,
+  Wrench,
+  type LucideIcon,
+} from 'lucide-react';
 import type { Inputs } from '../types';
 import { MODULES, SCOPE_QUESTIONS } from '../data/scope';
 import {
@@ -43,6 +76,8 @@ export interface FieldDef {
 
 export interface FieldGroup {
   title: string;
+  /** Shown left of the panel title. */
+  icon: LucideIcon;
   description: string;
   fields: FieldDef[];
   /** Shown only while this value type is claimed. */
@@ -54,6 +89,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
   Profile: [
     {
       title: 'Application profile',
+      icon: IdCard,
       description: 'Define the initiative, owner, scope, and financial horizon.',
       fields: [
         { key: 'applicationName', label: 'Application or initiative', kind: 'text' },
@@ -69,6 +105,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
     },
     {
       title: 'Organization and scope',
+      icon: Building2,
       description: 'Use segmented economics instead of one magical blended rate.',
       fields: [
         { key: 'users', label: 'Target users' },
@@ -84,6 +121,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
   Benefits: [
     {
       title: 'Shared factors',
+      icon: SlidersHorizontal,
       description:
         'Used by several claims. Adoption scales usage-driven value; gross margin converts revenue to profit.',
       fields: [
@@ -94,6 +132,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
     },
     {
       title: 'Time saved',
+      icon: Timer,
       description: 'Time savings adjusted for adoption and realization.',
       valueType: 'productivity',
       fields: [
@@ -104,6 +143,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
     },
     {
       title: 'Capacity and workforce',
+      icon: Users,
       description:
         'Value recovered capacity and contractor avoidance. Deferred hiring is a one-time saving.',
       valueType: 'capacity',
@@ -119,6 +159,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
     },
     {
       title: 'Revenue influence',
+      icon: TrendingUp,
       description: 'Conservative attribution using margin and contribution factors.',
       valueType: 'revenue',
       fields: [
@@ -132,6 +173,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
     },
     {
       title: 'Risk reduction',
+      icon: ShieldAlert,
       description: 'Probability-weighted financial exposure reduction.',
       valueType: 'risk',
       fields: [
@@ -142,6 +184,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
     },
     {
       title: 'Hard cost reduction',
+      icon: PiggyBank,
       description:
         'Spend that stops. Nothing counts before the contract ends, so enter the real exit month.',
       valueType: 'costReduction',
@@ -152,6 +195,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
     },
     {
       title: 'Retention and expansion',
+      icon: Repeat,
       description:
         'Credited at gross margin and only for this application’s share of the improvement.',
       valueType: 'retention',
@@ -163,6 +207,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
     },
     {
       title: 'Cycle-time compression',
+      icon: Gauge,
       description:
         'Deals that close sooner are not new deals. Only the timing value counts, at the discount rate.',
       valueType: 'cycleTime',
@@ -173,6 +218,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
     },
     {
       title: 'Cash acceleration',
+      icon: Banknote,
       description:
         'Collecting sooner releases working capital once; the recurring benefit is its financing cost.',
       valueType: 'cashAcceleration',
@@ -183,6 +229,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
     },
     {
       title: 'Quality and rework',
+      icon: BadgeCheck,
       description: 'Use a measured error or rework baseline, not an estimate.',
       valueType: 'quality',
       fields: [
@@ -193,6 +240,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
     },
     {
       title: 'Compliance and audit readiness',
+      icon: ClipboardCheck,
       description: 'Effort and fees only. Avoided fines and losses belong under risk reduction.',
       valueType: 'compliance',
       fields: [
@@ -202,6 +250,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
     },
     {
       title: 'Employee ramp and retention',
+      icon: GraduationCap,
       description: 'Soft value. Claim attrition only where it is already a known problem.',
       valueType: 'talent',
       fields: [
@@ -213,6 +262,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
     },
     {
       title: 'Forecast and decision quality',
+      icon: LineChart,
       description: 'Price a known cost of forecast misses, not accuracy for its own sake.',
       valueType: 'forecast',
       fields: [
@@ -222,6 +272,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
     },
     {
       title: 'Customer experience',
+      icon: Smile,
       description: 'Cost to serve. Claim churn effects under retention, not here.',
       valueType: 'customerExperience',
       fields: [
@@ -231,6 +282,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
     },
     {
       title: 'Tech debt and consolidation',
+      icon: Wrench,
       description: 'What is retired elsewhere. This application’s own upkeep is already in TCO.',
       valueType: 'techDebt',
       fields: [
@@ -240,6 +292,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
     },
     {
       title: 'Strategic optionality',
+      icon: Compass,
       description: 'An argument on top of the case. Reported, never added to ROI.',
       valueType: 'strategic',
       fields: [
@@ -248,6 +301,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
     },
     {
       title: 'Proof plan',
+      icon: FlaskConical,
       description:
         'Reviewers trust a stated kill criterion more than a big headline number. Required at the idea stage.',
       fields: [
@@ -259,6 +313,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
   TCO: [
     {
       title: 'Build labor',
+      icon: Hammer,
       description: 'Include discovery through launch—not just coding hours.',
       fields: [
         { key: 'initialLaborHours', label: 'Core development hours' },
@@ -274,6 +329,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
     },
     {
       title: 'Run platform',
+      icon: Server,
       description: 'Recurring infrastructure and usage-based services.',
       fields: [
         { key: 'monthlyHosting', label: 'Monthly hosting', kind: 'money' },
@@ -286,6 +342,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
     },
     {
       title: 'Change and govern',
+      icon: Landmark,
       description: 'Plan for enhancements, security, training, and debt repayment.',
       fields: [
         { key: 'annualMaintenance', label: 'Annual maintenance', kind: 'money' },
@@ -300,6 +357,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
   'Build vs Buy': [
     {
       title: 'Commercial alternative: one-time',
+      icon: ShoppingCart,
       description: 'Costs to stand up the product. Use a written quote, not a list price.',
       fields: [
         { key: 'buyImplementationCost', label: 'Implementation services', kind: 'money' },
@@ -309,6 +367,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
     },
     {
       title: 'Commercial alternative: recurring',
+      icon: CalendarClock,
       description: 'Year-one subscription and running costs, escalated by vendor price growth.',
       fields: [
         {
@@ -325,6 +384,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
     },
     {
       title: 'Non-financial considerations',
+      icon: ListChecks,
       description: 'Judge each factor on its own; these are not converted into money.',
       fields: [
         { key: 'bvbFunctionalFit', label: 'Functional fit', kind: 'preference' },
@@ -339,6 +399,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
   'AI Development': [
     {
       title: 'Token economics',
+      icon: Coins,
       description: 'Separate direct model spend from human oversight.',
       fields: [
         { key: 'aiInputTokens', label: 'Input tokens' },
@@ -352,6 +413,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
     },
     {
       title: 'Human oversight',
+      icon: UserCheck,
       description: 'Prompting is only the opening act; review and remediation count too.',
       fields: [
         { key: 'aiPromptingHours', label: 'Prompting hours' },
@@ -362,6 +424,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
     },
     {
       title: 'Traditional comparison',
+      icon: Code2,
       description: 'Compare against a credible alternative build estimate.',
       fields: [
         { key: 'traditionalBuildHours', label: 'Traditional build hours' },
@@ -373,6 +436,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
   'Technical Health': [
     {
       title: 'Maintainability assessment',
+      icon: HeartPulse,
       description: 'Score 1 (strong) to 5 (critical risk).',
       fields: [
         { key: 'architectureScore', label: 'Architecture', kind: 'score' },
@@ -391,6 +455,7 @@ export const FIELD_GROUPS: Partial<Record<Section, FieldGroup[]>> = {
   Actuals: [
     {
       title: 'Realization tracking',
+      icon: Target,
       description: 'Compare the approved model with observed results.',
       fields: [
         { key: 'monthsSinceLaunch', label: 'Months since launch' },

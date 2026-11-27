@@ -12,7 +12,7 @@ governance, and technical debt. On the other side, internal tools create value t
 ROI models miss: recovered capacity, avoided hiring, faster reporting, and reduced risk.
 Business Case Studio puts both sides in one transparent model.
 
-> **Status:** early MVP (v0.8.3). Runs entirely in the browser with no backend. Your model is
+> **Status:** early MVP (v0.9.0). Runs entirely in the browser with no backend. Your model is
 > autosaved in this browser only; use **Save file** to keep or share it as JSON. Default numbers are
 > illustrative — replace them with your own approved assumptions.
 
@@ -20,7 +20,7 @@ Business Case Studio puts both sides in one transparent model.
 
 ![Scenarios and sensitivity in demo mode: Conservative, Expected, and Upside comparison with a tornado chart](docs/screenshots/04-scenarios-and-sensitivity.png)
 
-_Screenshots show the built-in demo data (toggle **Demo data** in the header). More in
+_Screenshots show the built-in demo data (turn on **Demo data**, the flask button at the bottom of the sidebar). More in
 [docs/screenshots](docs/screenshots)._
 
 ## Features
@@ -118,8 +118,8 @@ input to prove the formula registry matches what the engine actually computes.
 ## Blank start and demo data
 
 On first launch the app asks whether to **start blank** (every figure zero, no names or
-assumptions) or **explore demo data** (an illustrative sample case). The **Demo data** switch in the
-header flips between the two at any time. Demo edits are kept in memory only; your own case stays
+assumptions) or **explore demo data** (an illustrative sample case). The **Demo data** switch (the flask
+button at the bottom of the sidebar) flips between the two at any time. Demo edits are kept in memory only; your own case stays
 saved and returns when the switch is turned off. **Clear data** zeroes every figure and removes all
 assumptions after a confirmation. Horizon (3 years), discount rate (8%), working weeks (48), and
 productive hours (1,880) keep standard values on a blank case, and technical-health scores start at
@@ -127,6 +127,12 @@ productive hours (1,880) keep standard values on a blank case, and technical-hea
 
 Other features can call these actions through `useWorkspace()` in `src/workspace/useWorkspace.ts`
 (`startBlank`, `enterDemo`, `exitDemo`, `clearAllData`, plus `demoMode` and `isBlank`).
+
+## Light and dark mode
+
+The sun, moon, and monitor buttons at the bottom of the sidebar pick light mode, dark mode, or
+match the system setting (the default). The choice is kept in this browser. Charts follow the theme,
+and printing always uses the light theme.
 
 ## Data and privacy
 

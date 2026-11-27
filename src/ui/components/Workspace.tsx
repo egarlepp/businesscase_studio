@@ -1,29 +1,42 @@
 import { useEffect, useRef } from 'react';
-import { Compass, FilePlus2, FlaskConical, Sparkles } from 'lucide-react';
+import { Compass, FilePlus2, FlaskConical, PencilLine, Sparkles } from 'lucide-react';
+import { PanelTitle } from './PanelTitle';
+import { HintTooltip } from './HintTooltip';
 import type { Section } from '../fields';
 import { useWorkspace } from '../../workspace/useWorkspace';
 
-/** Switch between the sample case and the user's own case. The user's case is never touched. */
+/** Icon-only switch between the sample case and the user's own case. The user's case is never touched. */
 export function DemoToggle() {
   const { demoMode, enterDemo, exitDemo } = useWorkspace();
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={demoMode}
-      className={demoMode ? 'demo-toggle on' : 'demo-toggle'}
-      title={
-        demoMode
-          ? 'Turn off to return to your own business case'
-          : 'Turn on to explore a filled-in sample case; your own case is kept'
+    <HintTooltip
+      placement="top"
+      className="sidebar-tool-anchor"
+      content={
+        <>
+          <strong>Demo data {demoMode ? 'on' : 'off'}</strong>
+          <span>
+            {demoMode
+              ? 'Turn off to return to your own business case.'
+              : 'Turn on to explore a filled-in sample case. Your own case is kept.'}
+          </span>
+        </>
       }
-      onClick={demoMode ? exitDemo : enterDemo}
     >
-      <span className="demo-toggle-track" aria-hidden="true">
-        <span className="demo-toggle-thumb" />
-      </span>
-      Demo data
-    </button>
+      {(describedBy) => (
+        <button
+          type="button"
+          role="switch"
+          aria-checked={demoMode}
+          aria-label="Demo data"
+          aria-describedby={describedBy}
+          className={demoMode ? 'sidebar-tool demo-switch on' : 'sidebar-tool demo-switch'}
+          onClick={demoMode ? exitDemo : enterDemo}
+        >
+          <FlaskConical size={17} aria-hidden="true" />
+        </button>
+      )}
+    </HintTooltip>
   );
 }
 
@@ -73,7 +86,9 @@ export function OverviewEmptyState({
   const { enterDemo } = useWorkspace();
   return (
     <section className="panel empty-state" aria-labelledby="empty-state-title">
-      <h2 id="empty-state-title">Add figures to build your business case</h2>
+      <PanelTitle id="empty-state-title" icon={PencilLine}>
+        Add figures to build your business case
+      </PanelTitle>
       <p className="body-copy">
         No benefits or costs are entered yet, so the charts are hidden and the metrics read zero.
         Work through these pages in order; the Overview fills in as you type.
@@ -149,7 +164,8 @@ export function WelcomeDialog({ onStartGuide }: { onStartGuide?: () => void } = 
         <h2 id="welcome-title">How do you want to start?</h2>
         <p id="welcome-description">
           Start with a blank case to model your own initiative, or explore a filled-in sample first.
-          You can switch at any time with the Demo data switch at the top of the page.
+          You can switch at any time with the Demo data button (the flask) at the bottom of the
+          sidebar.
         </p>
         <div className="choice-grid">
           <button type="button" className="choice" ref={firstButton} onClick={startBlank}>
