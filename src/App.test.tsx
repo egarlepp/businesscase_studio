@@ -3,7 +3,7 @@ import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
-import { CHANGELOG, LAST_SEEN_VERSION_KEY } from './data/changelog';
+import { CHANGELOG, LAST_SEEN_VERSION_KEY, RECENT_RELEASES_SHOWN } from './data/changelog';
 import { defaultInputs } from './data/defaults';
 import { DRAFT_SCHEMA, DRAFT_VERSION, saveStoredDraft, STORAGE_KEY } from './persistence/draft';
 import { sampleDraft, saveWorkspacePrefs, WORKSPACE_KEY } from './workspace/workspace';
@@ -309,11 +309,18 @@ describe('App', () => {
     expect(badge).toHaveTextContent(`v${APP_VERSION}`);
     await user.click(badge);
     const dialog = screen.getByRole('dialog', { name: /^What.s new$/ });
+    expect(within(dialog).getByRole('button', { name: "Close what's new" })).toHaveFocus();
     expect(
       within(dialog).getByRole('region', { name: `Version ${APP_VERSION}` }),
     ).toBeInTheDocument();
-    expect(within(dialog).getAllByRole('region').length).toBe(CHANGELOG.length);
-    expect(within(dialog).getByRole('button', { name: "Close what's new" })).toHaveFocus();
+    expect(within(dialog).getAllByRole('region')).toHaveLength(RECENT_RELEASES_SHOWN);
+    const toggle = within(dialog).getByRole('button', { name: /^Show older releases/ });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(within(dialog).getAllByRole('region')).toHaveLength(CHANGELOG.length);
+    await user.click(within(dialog).getByRole('button', { name: /^Hide older releases/ }));
+    expect(within(dialog).getAllByRole('region')).toHaveLength(RECENT_RELEASES_SHOWN);
     expect(window.localStorage.getItem(LAST_SEEN_VERSION_KEY)).toBe(APP_VERSION);
 
     await user.keyboard('{Escape}');
