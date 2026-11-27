@@ -14,6 +14,7 @@ import {
 import { getFormula } from '../../calculations/formulas';
 import { AUDIENCES, VALUE_LEVERS, getAudience, type ValueLever } from '../../guide/audiences';
 import { getValueType, isClaimed } from '../../data/valueTypes';
+import { SCOPE_QUESTIONS, suggestClaims, type ScopeKey, type ScopeSource } from '../../data/scope';
 import {
   ANSWER_OPTIONS,
   STAGE_OPTIONS,
@@ -93,7 +94,7 @@ export function Walkthrough({
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   const answers = state.answers;
-  const steps = answers ? stepsFor(answers) : [];
+  const steps = answers ? stepsFor(answers, inputs) : [];
   const index = Math.max(
     0,
     steps.findIndex((s) => s.id === state.stepId),
@@ -147,11 +148,20 @@ export function Walkthrough({
       {showSetup ? (
         <SetupForm
           initial={answers}
+          inputs={inputs}
           headingRef={headingRef}
           onCancel={answers ? () => setEditingAnswers(false) : undefined}
-          onSubmit={(next) => {
+          onSubmit={(next, scope) => {
             onClaim(next.levers);
-            const nextSteps = stepsFor(next);
+            const scopeUpdates: Partial<Record<ScopeKey, string>> = {
+              ...scope,
+              scopeStage: next.stage,
+              scopeAiBuild: next.aiAssisted,
+              scopeBuyOption: next.buyOption,
+            };
+            for (const [key, value] of Object.entries(scopeUpdates) as [ScopeKey, string][])
+              if (inputs[key] !== value) onApply(key, value);
+            const nextSteps = stepsFor(next, { ...inputs, ...scopeUpdates });
             const keep = nextSteps.some((s) => s.id === state.stepId);
             onStateChange({
               ...state,
@@ -393,26 +403,48 @@ function ExampleRow({
   );
 }
 
+/** The application questions asked here; the rest of the scope comes from questions 2, 4, 5. */
+const APP_SCOPE_KEYS: ScopeKey[] = [
+  'scopeAppType',
+  'scopeUsers',
+  'scopeData',
+  'scopeAiRuntime',
+  'scopeIntegrations',
+];
+const APP_SCOPE_QUESTIONS = SCOPE_QUESTIONS.filter((q) => APP_SCOPE_KEYS.includes(q.key));
+
+const asStage = (v: string): GuideAnswers['stage'] | null =>
+  v === 'idea' || v === 'built' || v === 'live' ? v : null;
+const asAnswer = (v: string): Answer | null =>
+  v === 'yes' || v === 'no' || v === 'unsure' ? v : null;
+
 function SetupForm({
   initial,
+  inputs,
   onSubmit,
   onCancel,
   headingRef,
 }: {
   initial: GuideAnswers | null;
-  onSubmit: (answers: GuideAnswers) => void;
+  /** The case: its scope answers pre-fill the questions. */
+  inputs: ScopeSource;
+  onSubmit: (answers: GuideAnswers, scope: Partial<Record<ScopeKey, string>>) => void;
   onCancel?: () => void;
   headingRef: RefObject<HTMLHeadingElement | null>;
 }) {
-  const [draft, setDraft] = useState<GuideAnswers>(
-    initial ?? {
-      audience: 'general',
-      stage: 'idea',
-      aiAssisted: 'unsure',
-      buyOption: 'unsure',
-      levers: getAudience('general').defaultLevers,
-    },
+  const [draft, setDraft] = useState<GuideAnswers>(() => ({
+    audience: 'general',
+    levers: getAudience('general').defaultLevers,
+    ...initial,
+    // The case's own scope wins: it travels with the file and may have been edited on Profile.
+    stage: asStage(inputs.scopeStage) ?? initial?.stage ?? 'idea',
+    aiAssisted: asAnswer(inputs.scopeAiBuild) ?? initial?.aiAssisted ?? 'unsure',
+    buyOption: asAnswer(inputs.scopeBuyOption) ?? initial?.buyOption ?? 'unsure',
+  }));
+  const [scope, setScope] = useState<Partial<Record<ScopeKey, string>>>(() =>
+    Object.fromEntries(APP_SCOPE_KEYS.map((k) => [k, inputs[k]])),
   );
+  const suggested = suggestClaims({ ...inputs, ...scope }).map((c) => c.id);
   const [leversTouched, setLeversTouched] = useState(initial !== null);
 
   const chooseAudience = (id: GuideAnswers['audience']) =>
@@ -447,6 +479,7 @@ function SetupForm({
         {selected.recommendedClaims.includes(l.id) && (
           <span className="claim-badge">For {selected.title}</span>
         )}
+        {suggested.includes(l.id) && <span className="claim-badge scope">Fits this app</span>}
         <small>{l.hint}</small>
       </span>
     </label>
@@ -457,7 +490,7 @@ function SetupForm({
       className="guide-body"
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit(draft);
+        onSubmit(draft, scope);
       }}
     >
       <h2 tabIndex={-1} ref={headingRef}>
@@ -541,6 +574,33 @@ function SetupForm({
         value={draft.buyOption}
         onChange={(v) => setDraft((d) => ({ ...d, buyOption: v }))}
       />
+
+      <fieldset>
+        <legend>6. About the application</legend>
+        <p className="guide-purpose">
+          These decide which pages are essential, optional, or not applicable, and which value types
+          fit. Skip any you do not know yet.
+        </p>
+        <div className="scope-questions">
+          {APP_SCOPE_QUESTIONS.map((q) => (
+            <label key={q.key} className="scope-question">
+              <span>{q.label}</span>
+              <select
+                className="input"
+                value={scope[q.key] ?? ''}
+                onChange={(e) => setScope((s) => ({ ...s, [q.key]: e.target.value }))}
+              >
+                <option value="">Not sure yet</option>
+                {q.options.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
+        </div>
+      </fieldset>
 
       <div className="guide-actions">
         {onCancel && (

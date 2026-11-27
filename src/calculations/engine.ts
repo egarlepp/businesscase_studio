@@ -16,6 +16,7 @@ import {
   isClaimed,
   type ValueTypeId,
 } from '../data/valueTypes';
+import { scopeWarnings } from '../data/scope';
 const clamp = (v: number, min = 0, max = 1) => Math.min(Math.max(v, min), max);
 const positive = (v: number) => Math.max(v, 0);
 const formatPercent = (v: number) => `${Math.round(v * 1000) / 10}%`;
@@ -565,6 +566,15 @@ export function calculateBusinessCase(raw: Inputs): Results {
     warnings.push(
       `Technical-debt reserve (${formatPercent(raw.technicalDebtReserveRate)}) is below the ${formatPercent(suggestedTechnicalDebtReserveRate)} suggested by the technical-health score.`,
     );
+  const aiOversightHours =
+    raw.aiPromptingHours +
+    raw.aiReviewHours +
+    raw.aiDebuggingHours +
+    raw.aiSecurityRemediationHours;
+  const buildVsBuy = calculateBuildVsBuy(raw, { years, annualBreakdown, totalCosts, npv });
+  warnings.push(
+    ...scopeWarnings(raw, { aiCash, aiOversightHours, buyConfigured: buildVsBuy.configured }),
+  );
   if (paybackMonths !== null && paybackMonths > years * 12)
     warnings.push(
       `Payback (${Math.round(paybackMonths)} months) falls after the ${years}-year evaluation horizon.`,
@@ -612,7 +622,7 @@ export function calculateBusinessCase(raw: Inputs): Results {
       technicalDebt,
     },
     annualBreakdown,
-    buildVsBuy: calculateBuildVsBuy(raw, { years, annualBreakdown, totalCosts, npv }),
+    buildVsBuy,
     warnings,
   };
 }

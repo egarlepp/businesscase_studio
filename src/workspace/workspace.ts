@@ -7,6 +7,7 @@ import {
   defaultInputs,
 } from '../data/defaults';
 import { loadStoredDraft, type DraftState } from '../persistence/draft';
+import { SCOPE_INPUT_KEYS } from '../data/scope';
 import type { Inputs } from '../types';
 
 /**
@@ -36,7 +37,11 @@ export function blankDraft(): DraftState {
   return { caseName: '', inputs: { ...blankInputs }, scenario: 'Expected', assumptions: [] };
 }
 
-const SKIPPED_SAMPLE_KEYS = new Set<string>([...BUILD_VS_BUY_KEYS, ...VALUE_CLAIM_KEYS]);
+const SKIPPED_SAMPLE_KEYS = new Set<string>([
+  ...BUILD_VS_BUY_KEYS,
+  ...VALUE_CLAIM_KEYS,
+  ...SCOPE_INPUT_KEYS,
+]);
 
 /**
  * True when a stored draft is the untouched sample case. Earlier versions saved the sample

@@ -1,4 +1,5 @@
 import type { Inputs } from '../types';
+import { MODULES, SCOPE_QUESTIONS } from '../data/scope';
 import {
   VALUE_TYPES,
   baselineKey,
@@ -30,7 +31,9 @@ export type FieldKind =
   | 'preference'
   /** Claim flag and evidence class: edited in the value-claims picker, not as a field. */
   | 'claim'
-  | 'evidence';
+  | 'evidence'
+  /** Scope answer or module tier: edited in the Scope panel on Profile, not as a field. */
+  | 'scope';
 
 export interface FieldDef {
   key: keyof Inputs;
@@ -434,6 +437,18 @@ for (const type of VALUE_TYPES) {
   locations.set(evidenceKey(type.id), at('evidence class', 'evidence'));
   locations.set(baselineKey(type.id), at('baseline source', 'text'));
 }
+
+/** Scope answers and module tiers are edited in the Scope panel on the Profile page. */
+export const SCOPE_GROUP = 'Scope';
+for (const q of SCOPE_QUESTIONS)
+  locations.set(q.key, { section: 'Profile', group: SCOPE_GROUP, label: q.label, kind: 'scope' });
+for (const m of MODULES)
+  locations.set(m.key, {
+    section: 'Profile',
+    group: SCOPE_GROUP,
+    label: `${m.label} module`,
+    kind: 'scope',
+  });
 
 /** Where an input is edited in the UI. Every key of `Inputs` has a location (enforced by tests). */
 export function fieldLocation(key: keyof Inputs): FieldLocation | undefined {

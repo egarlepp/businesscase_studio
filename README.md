@@ -12,15 +12,9 @@ governance, and technical debt. On the other side, internal tools create value t
 ROI models miss: recovered capacity, avoided hiring, faster reporting, and reduced risk.
 Business Case Studio puts both sides in one transparent model.
 
-> **Status:** early MVP (v0.7.1). Runs entirely in the browser with no backend. Your model is
+> **Status:** early MVP (v0.8.0). Runs entirely in the browser with no backend. Your model is
 > autosaved in this browser only; use **Save file** to keep or share it as JSON. Default numbers are
 > illustrative — replace them with your own approved assumptions.
-
-![Overview in demo mode: ROI, TCO, NPV, and payback with the cumulative value chart and business-case quality indicators](docs/screenshots/overview.png)
-
-![Scenarios in demo mode: Conservative, Expected, and Upside comparison with a tornado sensitivity chart](docs/screenshots/scenarios.png)
-
-_Screenshots show the built-in demo data (toggle **Demo data** in the header)._
 
 ## Features
 
@@ -44,6 +38,13 @@ AI-assisted, and whether a commercial product exists) decide which steps apply. 
 opens each page in turn, explains what the step does, shows example inputs you can apply or
 replace, and lists the questions to answer first. Progress is kept in this browser, so you can
 close it and pick up where you left off.
+
+**Scope.** The Scope panel on Profile (also asked in the walkthrough) records the application
+type, users, data sensitivity, AI use, integrations, buy option, and stage. The answers mark
+AI Development, Build vs Buy, Technical Health, and Actuals as essential, optional, or not
+applicable (you can override each), suggest the value types that fit, and add guardrails for
+essential costs left at zero. Pages that do not apply are greyed out in the navigation and can be
+hidden. Their inputs are kept and any costs they carry still count.
 
 **Pitch audiences.** IT manager, CIO / CTO, CFO / Finance, CRO / Sales leader, COO / Operations,
 CISO / Risk, and Board / Investment committee each define the metrics to lead with, which modeling
@@ -139,9 +140,8 @@ are a good place to start contributing.
 - [#18](https://github.com/egarlepp/businesscase_studio/issues/18) Team-specific benefit breakouts (drafts are versioned, so saved models can be
   migrated)
 
-**Next**
-
-- [#19](https://github.com/egarlepp/businesscase_studio/issues/19) Guided setup
+**Done in v0.8.0**: guided setup that recommends which modules apply
+([#19](https://github.com/egarlepp/businesscase_studio/issues/19)).
 
 **Done in v0.4.0**: build-versus-buy comparison and an editable assumption register
 ([#17](https://github.com/egarlepp/businesscase_studio/issues/17)).
