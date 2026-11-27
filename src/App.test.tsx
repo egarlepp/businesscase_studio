@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { CHANGELOG, LAST_SEEN_VERSION_KEY } from './data/changelog';
 import { defaultInputs } from './data/defaults';
-import { DRAFT_SCHEMA, DRAFT_VERSION, STORAGE_KEY } from './persistence/draft';
+import { DRAFT_SCHEMA, DRAFT_VERSION, saveStoredDraft, STORAGE_KEY } from './persistence/draft';
+import { sampleDraft, saveWorkspacePrefs, WORKSPACE_KEY } from './workspace/workspace';
 import { APP_VERSION } from './version';
 
 const SECTIONS = [
@@ -32,7 +33,15 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+/** A returning user whose own saved case is a copy of the sample (demo mode off). */
+const seedOwnSampleCase = () => {
+  saveWorkspacePrefs(window.localStorage, { demoMode: false });
+  saveStoredDraft(window.localStorage, sampleDraft());
+};
+
 describe('App', () => {
+  beforeEach(seedOwnSampleCase);
+
   it('renders the overview with key metrics', () => {
     render(<App />);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
@@ -83,7 +92,7 @@ describe('App', () => {
     expect(screen.getByText('Total cost of ownership').closest('article')).toHaveTextContent('€');
   });
 
-  it('only resets after confirmation', async () => {
+  it('only clears data after confirmation', async () => {
     const user = userEvent.setup();
     render(<App />);
     await goTo(user, 'Profile');
@@ -91,13 +100,13 @@ describe('App', () => {
     await user.clear(name);
     await user.type(name, 'Changed');
     const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false);
-    await user.click(screen.getByRole('button', { name: /reset/i }));
+    await user.click(screen.getByRole('button', { name: 'Clear data' }));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Changed');
     confirm.mockReturnValueOnce(true);
-    await user.click(screen.getByRole('button', { name: /reset/i }));
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      defaultInputs.applicationName,
-    );
+    await user.click(screen.getByRole('button', { name: 'Clear data' }));
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Untitled business case');
+    expect(screen.getByLabelText('Target users')).toHaveValue(0);
+    expect(window.localStorage.getItem(STORAGE_KEY)).not.toContain('Changed');
   });
 
   it('autosaves edits and restores them on the next load', async () => {
@@ -241,7 +250,9 @@ describe('App', () => {
   });
 
   it('leaves the comparison unconfigured for a draft saved before build vs buy existed', async () => {
-    const legacyInputs: Record<string, unknown> = { ...defaultInputs };
+    // An edited case: an untouched legacy sample is treated as a first launch instead.
+    window.localStorage.removeItem(WORKSPACE_KEY);
+    const legacyInputs: Record<string, unknown> = { ...defaultInputs, applicationName: 'Mine' };
     for (const key of Object.keys(legacyInputs))
       if (key.startsWith('buy') || key.startsWith('bvb')) delete legacyInputs[key];
     window.localStorage.setItem(
@@ -291,5 +302,118 @@ describe('App', () => {
     );
     await user.click(screen.getByRole('button', { name: "Close what's new" }));
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+});
+
+describe('Workspace: blank start and demo mode', () => {
+  const ALL_SECTIONS = SECTIONS;
+
+  it('asks on first launch and starts a blank case that renders without broken numbers', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const dialog = screen.getByRole('dialog', { name: 'How do you want to start?' });
+    expect(within(dialog).getByRole('button', { name: /Start blank/ })).toHaveFocus();
+    await user.click(within(dialog).getByRole('button', { name: /Start blank/ }));
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Untitled business case');
+    expect(
+      screen.getByRole('heading', { name: 'Add figures to build your business case' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'Demo data' })).toHaveAttribute(
+      'aria-checked',
+      'false',
+    );
+    expect(JSON.parse(window.localStorage.getItem(WORKSPACE_KEY)!)).toMatchObject({
+      demoMode: false,
+    });
+    for (const name of ALL_SECTIONS) {
+      await goTo(user, name);
+      expect(document.body.textContent).not.toMatch(/NaN|Infinity/);
+    }
+    expect(screen.getByText(/has no benefits or costs yet/)).toBeInTheDocument();
+  });
+
+  it('opens a page from the blank-case steps', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: /Start blank/ }));
+    await user.click(screen.getByRole('button', { name: 'Open Benefits' }));
+    expect(screen.getByText('BUSINESS CASE / BENEFITS')).toBeInTheDocument();
+  });
+
+  it('does not save edits made in demo mode', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: /Explore demo data/ }));
+    expect(screen.getByRole('note')).toHaveTextContent('Demo mode.');
+    expect(screen.getByText('Demo data: changes are not saved')).toBeInTheDocument();
+    await goTo(user, 'Profile');
+    const name = screen.getByLabelText('Application or initiative');
+    await user.clear(name);
+    await user.type(name, 'Scratch');
+    expect(window.localStorage.getItem(STORAGE_KEY) ?? '').not.toContain('Scratch');
+  });
+
+  it('switches to the demo and back without losing the user’s own case', async () => {
+    seedOwnSampleCase();
+    const own = sampleDraft();
+    own.inputs.applicationName = 'Claims portal';
+    saveStoredDraft(window.localStorage, own);
+    const user = userEvent.setup();
+    const { unmount } = render(<App />);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    const toggle = screen.getByRole('switch', { name: 'Demo data' });
+
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+      defaultInputs.applicationName,
+    );
+    // Demo mode survives a reload.
+    unmount();
+    render(<App />);
+    expect(screen.getByRole('switch', { name: 'Demo data' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    await user.click(screen.getByRole('button', { name: 'Exit demo' }));
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Claims portal');
+  });
+
+  it('keeps an edited case from an earlier version without asking', () => {
+    const own = sampleDraft();
+    own.inputs.applicationName = 'Claims portal';
+    saveStoredDraft(window.localStorage, own);
+    render(<App />);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Claims portal');
+  });
+
+  it('asks again when the saved case is the untouched sample from an earlier version', () => {
+    saveStoredDraft(window.localStorage, sampleDraft());
+    render(<App />);
+    expect(screen.getByRole('dialog', { name: 'How do you want to start?' })).toBeInTheDocument();
+  });
+
+  it('leaves demo mode when a draft is imported', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: /Explore demo data/ }));
+    await goTo(user, 'Reports');
+    const draft = {
+      schema: DRAFT_SCHEMA,
+      version: DRAFT_VERSION,
+      inputs: { ...defaultInputs, applicationName: 'Imported Case' },
+    };
+    const file = new File([JSON.stringify(draft)], 'case.json', { type: 'application/json' });
+    await user.upload(screen.getByLabelText('Import draft file'), file);
+    expect(await screen.findByText('Imported "Imported Case".')).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'Demo data' })).toHaveAttribute(
+      'aria-checked',
+      'false',
+    );
+    expect(window.localStorage.getItem(STORAGE_KEY)).toContain('Imported Case');
   });
 });

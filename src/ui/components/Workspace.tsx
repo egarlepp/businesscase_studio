@@ -1,0 +1,156 @@
+import { useEffect, useRef } from 'react';
+import { FilePlus2, FlaskConical, Sparkles } from 'lucide-react';
+import type { Section } from '../fields';
+import { useWorkspace } from '../../workspace/useWorkspace';
+
+/** Switch between the sample case and the user's own case. The user's case is never touched. */
+export function DemoToggle() {
+  const { demoMode, enterDemo, exitDemo } = useWorkspace();
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={demoMode}
+      className={demoMode ? 'demo-toggle on' : 'demo-toggle'}
+      title={
+        demoMode
+          ? 'Turn off to return to your own business case'
+          : 'Turn on to explore a filled-in sample case; your own case is kept'
+      }
+      onClick={demoMode ? exitDemo : enterDemo}
+    >
+      <span className="demo-toggle-track" aria-hidden="true">
+        <span className="demo-toggle-thumb" />
+      </span>
+      Demo data
+    </button>
+  );
+}
+
+export function DemoBanner() {
+  const { exitDemo } = useWorkspace();
+  return (
+    <div className="demo-banner" role="note">
+      <FlaskConical size={18} aria-hidden="true" />
+      <p>
+        <strong>Demo mode.</strong> You are viewing an illustrative sample case. Edits here are not
+        saved, and your own business case is kept separately.
+      </p>
+      <button type="button" className="secondary" onClick={exitDemo}>
+        Exit demo
+      </button>
+    </div>
+  );
+}
+
+const FIRST_STEPS: Array<{ section: Section; title: string; detail: string }> = [
+  {
+    section: 'Profile',
+    title: 'Profile',
+    detail: 'Name the initiative, then set users, hourly rates, and the evaluation horizon.',
+  },
+  {
+    section: 'Benefits',
+    title: 'Benefits',
+    detail: 'Enter time saved, adoption, and any capacity, revenue, or risk effects.',
+  },
+  {
+    section: 'TCO',
+    title: 'Total cost of ownership',
+    detail: 'Enter build hours, AI spend, and the monthly and annual cost to run it.',
+  },
+];
+
+/** Shown on the Overview while the case has no benefits or costs. */
+export function OverviewEmptyState({ onNavigate }: { onNavigate: (section: Section) => void }) {
+  const { enterDemo } = useWorkspace();
+  return (
+    <section className="panel empty-state" aria-labelledby="empty-state-title">
+      <h2 id="empty-state-title">Add figures to build your business case</h2>
+      <p className="body-copy">
+        No benefits or costs are entered yet, so the charts are hidden and the metrics read zero.
+        Work through these pages in order; the Overview fills in as you type.
+      </p>
+      <ol className="empty-steps">
+        {FIRST_STEPS.map((step, index) => (
+          <li key={step.section}>
+            <span className="empty-step-number" aria-hidden="true">
+              {index + 1}
+            </span>
+            <div>
+              <strong>{step.title}</strong>
+              <span>{step.detail}</span>
+            </div>
+            <button type="button" className="secondary" onClick={() => onNavigate(step.section)}>
+              Open {step.section}
+            </button>
+          </li>
+        ))}
+      </ol>
+      <p className="body-copy">
+        Want to see a finished example first?{' '}
+        <button type="button" className="link-button" onClick={enterDemo}>
+          Explore the demo data
+        </button>
+        . Your own case is kept and comes back when you turn demo data off.
+      </p>
+    </section>
+  );
+}
+
+/** First-launch choice between an empty case and the sample. Rendered as a modal dialog. */
+export function WelcomeDialog() {
+  const { startBlank, enterDemo } = useWorkspace();
+  const firstButton = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    firstButton.current?.focus();
+  }, []);
+
+  return (
+    <div className="modal-backdrop">
+      <div
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="welcome-title"
+        aria-describedby="welcome-description"
+        onKeyDown={(event) => {
+          // Keep focus inside the dialog: there is no way to dismiss it without choosing.
+          if (event.key !== 'Tab') return;
+          const buttons = Array.from(event.currentTarget.querySelectorAll('button'));
+          const first = buttons[0];
+          const last = buttons[buttons.length - 1];
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last?.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first?.focus();
+          }
+        }}
+      >
+        <span className="eyebrow">WELCOME</span>
+        <h2 id="welcome-title">How do you want to start?</h2>
+        <p id="welcome-description">
+          Start with a blank case to model your own initiative, or explore a filled-in sample first.
+          You can switch at any time with the Demo data switch at the top of the page.
+        </p>
+        <div className="choice-grid">
+          <button type="button" className="choice" ref={firstButton} onClick={startBlank}>
+            <FilePlus2 size={22} aria-hidden="true" />
+            <strong>Start blank</strong>
+            <span>All figures at zero, no sample names or assumptions. Saved in this browser.</span>
+          </button>
+          <button type="button" className="choice" onClick={enterDemo}>
+            <Sparkles size={22} aria-hidden="true" />
+            <strong>Explore demo data</strong>
+            <span>
+              A sample internal workflow app with every page filled in. Edits are not saved.
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
