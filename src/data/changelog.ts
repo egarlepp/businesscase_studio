@@ -23,6 +23,17 @@ export const RECENT_RELEASES_SHOWN = 2;
 
 export const CHANGELOG: readonly Release[] = [
   {
+    version: '0.10.0',
+    date: '2026-11-27',
+    title: 'AI briefing pack for reports and decks',
+    changes: [
+      'A new AI briefing pack on the Reports page turns the case into a written memo, a slide deck, or both with an AI assistant such as Claude. Pick the audience and what to ask for, then copy the pack or download it as a Markdown file.',
+      'The pack holds the results for all three scenarios, the ROI with soft claims removed, each claim with its evidence class and baseline source, costs, cash flow, the inputs that move NPV most, scope, assumptions, guardrail warnings, and the pilot threshold and kill criterion.',
+      "Its prompt follows the audience's storyline and likely questions, and tells the assistant to quote figures exactly, never calculate or invent numbers, and keep every risk and caveat.",
+      'Nothing is sent anywhere: you paste or attach the pack yourself. Check every figure in the result against the Reports page before you present it.',
+    ],
+  },
+  {
     version: '0.9.0',
     date: '2026-11-27',
     title: 'Dark mode and a tidier header',
@@ -57,19 +68,6 @@ export const CHANGELOG: readonly Release[] = [
     title: 'Tidier Scope questions',
     changes: [
       'The Scope questions on the Profile page now sit in two rows of four, with their answer boxes lined up, and wrap to two columns or one on smaller screens.',
-    ],
-  },
-  {
-    version: '0.8.0',
-    date: '2026-11-27',
-    title: 'Scope: which pages apply',
-    changes: [
-      'A new Scope panel on the Profile page asks what kind of application this is: its type, who uses it, what data it handles, how it uses AI, how many systems it integrates with, whether you could buy a product instead, and where it stands today. The guided walkthrough asks the same questions.',
-      'The answers mark AI Development, Build vs Buy, Technical Health, and Actuals as essential, optional, or not applicable. You can override any of them.',
-      'Pages that do not apply are greyed out in the navigation and can be hidden. Their inputs are kept, and any costs entered there still count in TCO.',
-      'Scope suggests the value types that fit the application, with one-click claiming, and marks them "Fits this app" on the Benefits page.',
-      'New guardrails catch costs the scope makes essential but are still zero, such as production AI with no runtime cost or personal data with no security spend.',
-      'Reports add a Scope section listing what was left out and why.',
     ],
   },
 ];

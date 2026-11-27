@@ -37,7 +37,7 @@ _Screenshots show the built-in demo data (turn on **Demo data**, the flask butto
 | **Scenarios**        | Conservative / Expected / Upside comparison and a tornado sensitivity analysis (NPV or ROI, ±10–30%)                                                                                                                                                                                                                 |
 | **Assumptions**      | Editable register: add, edit, and remove assumptions with owner, source, confidence, and approval status                                                                                                                                                                                                             |
 | **Actuals**          | Forecast-versus-actual variance, initial-investment variance, payback progress, and ROI at the actual run rate                                                                                                                                                                                                       |
-| **Reports**          | Executive summary, key metrics, build-vs-buy summary, calculation trace, save and open case files (JSON), cash-flow CSV, and print / Save as PDF                                                                                                                                                                     |
+| **Reports**          | Executive summary, key metrics, build-vs-buy summary, calculation trace, save and open case files (JSON), cash-flow CSV, an AI briefing pack for writing a memo or deck with an AI assistant, and print / Save as PDF                                                                                                |
 
 **Guided walkthrough.** Open **Guide** in the header at any time. Five setup questions (who you
 are presenting to, the initiative's stage, which kinds of value you will claim, whether it is
@@ -101,6 +101,7 @@ src/
   data/defaults.ts              Sample inputs, assumptions, scenario multipliers
   persistence/draft.ts          Versioned draft format, import validation, autosave
   export/csv.ts                 Cash-flow CSV export
+  export/briefingPack.ts        AI briefing pack: figures, caveats, and an audience-tuned prompt
   ui/fields.ts                  Every input's label and page location
   ui/format.ts                  Currency-aware formatting
   ui/buildVsBuy.ts              Build-vs-buy headline, checklist tally, chart series
@@ -139,7 +140,7 @@ and printing always uses the light theme.
 There is no server. Your model is autosaved to this browser's `localStorage` and never transmitted.
 Anyone with access to the same browser profile can see it; use **Clear data** to erase it and start
 blank. Exported
-JSON and CSV files can contain sensitive staffing and financial data; store them accordingly. See
+JSON and CSV files, and the AI briefing pack, can contain sensitive staffing and financial data; store them accordingly. The app never calls an AI service: pasting the briefing pack into an assistant sends it to that provider, so follow your organization's rules for that tool. See
 [SECURITY.md](SECURITY.md).
 
 ## Roadmap
